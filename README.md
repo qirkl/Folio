@@ -1,9 +1,9 @@
 # Folio
 
-A notes app that looks like it shipped with Mac OS X Tiger. Blurred dark
-sidebar, beveled controls, and a white typing field — built on Tauri 2.
+A classic notes app that looks like it shipped with Mac OS X in 2011. Blurred dark
+sidebar, beveled controls, and a white typing field — built via Tauri 2.
 
-![the app](docs/preview.png)
+![the app](docs/preview.jpg)
 
 ## Running it
 
