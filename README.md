@@ -7,7 +7,7 @@ sidebar, beveled buttons, a white page to type on. Notes are stored in plain mar
 
 ## Running it
 
-You need [bun](https://bun.sh).
+[Bun](https://bun.sh) is required.
 
 ```
 bun install
