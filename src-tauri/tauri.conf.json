@@ -1,0 +1,44 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Folio",
+  "version": "0.1.0",
+  "identifier": "com.nick.notes",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Folio",
+        "width": 1180,
+        "height": 780,
+        "minWidth": 940,
+        "minHeight": 620,
+        "center": true,
+        "resizable": true,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "category": "Productivity",
+    "shortDescription": "Skeuomorphic notes",
+    "longDescription": "A notes app that looks like it shipped with Mac OS X Tiger.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

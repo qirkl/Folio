@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 13 9" width="13" height="9">
+  <!-- Drawn to sit alongside the supplied markdown badge: same box, same ink. -->
+  <rect x="1.1" y="0.55" width="10.8" height="7.9" rx="1.2" fill="#3a3a3e"/>
+  <rect x="1.1" y="0.55" width="10.8" height="7.9" rx="1.2" fill="none" stroke="#5c5c62" stroke-width="0.5"/>
+  <g stroke="#f2f2f4" stroke-width="0.7" stroke-linecap="round">
+    <path d="M4.1 2.9h6.2"/>
+    <path d="M4.1 4.5h6.2"/>
+    <path d="M4.1 6.1h3.7"/>
+  </g>
+  <g fill="#9a9aa2">
+    <circle cx="2.6" cy="2.4" r="0.42"/>
+    <circle cx="2.6" cy="4.5" r="0.42"/>
+    <circle cx="2.6" cy="6.6" r="0.42"/>
+  </g>
+</svg>

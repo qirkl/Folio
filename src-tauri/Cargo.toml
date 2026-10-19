@@ -1,0 +1,36 @@
+[package]
+name = "folio"
+version = "0.1.0"
+description = "A skeuomorphic notes app for the desktop"
+authors = ["Nick"]
+edition = "2021"
+rust-version = "1.77.2"
+
+# The `_lib` suffix keeps the library target from colliding with the binary
+# target of the same package name (only an issue on Windows, see
+# https://github.com/rust-lang/cargo/issues/8519).
+[lib]
+name = "folio_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Native window materials: acrylic/blur on Windows, vibrancy on macOS. This is
+# the only true translucency — CSS can blur the page, never the desktop behind
+# it. macOS additionally needs tauri's `macos-private-api` feature.
+[target.'cfg(target_os = "windows")'.dependencies]
+window-vibrancy = "0.8"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
