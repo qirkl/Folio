@@ -1,23 +1,6 @@
 # Folio — plan
 
-A notes app with the look of Mac OS X Tiger. Electron for the window and files,
-plain HTML and CSS for the interface, no bundler.
-
-## How it fits together
-
-- `src/index.html` is the whole interface. One file, no imports besides
-  `js/markdown.js`.
-- `js/markdown.js` converts between markdown and the editor's HTML.
-- `electron/preload.js` gives the page the small `window.__TAURI__` surface it
-  was written against: `invoke`, `dialog.open`, window controls, file drops.
-- `electron/vault.js` does everything on disk: the tree, note files, folders,
-  settings.
-- `electron/material.js` asks Windows for the blur behind the sidebar.
-
-Settings and notes are stored the same way they were in the Tauri version, so
-the two builds can share them.
-
-## Done
+## Already done
 
 - Frameless, transparent window with Windows caption buttons and a drag strip.
 - Sidebar: tree from disk, expand/collapse, selection, drag rows to reorder,
@@ -34,8 +17,9 @@ the two builds can share them.
 - Settings: theme, app icon, notes folder, sidebar width.
 - Tests for the markdown converter.
 
-## Next
+## To be done
 
+- Port over to Electron
 - Build and try the installer (`bun run dist`).
 - Split `src/index.html` into a few files. It is long and getting longer.
 - Watch the notes folder, so a file changed in another editor shows up without
@@ -58,4 +42,4 @@ the two builds can share them.
 
 ## Not planned
 
-Backlinks, plugins, a mobile version, collaboration, encryption.
+Backlinks, plugins, collaboration, encryption.
