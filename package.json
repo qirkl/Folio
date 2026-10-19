@@ -1,0 +1,40 @@
+{
+  "name": "folio",
+  "productName": "Folio",
+  "version": "0.1.0",
+  "description": "A notes app that looks like it shipped with Mac OS X Tiger.",
+  "main": "electron/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "bun tools/markdown.test.js",
+    "dist": "electron-builder --win nsis"
+  },
+  "dependencies": {
+    "koffi": "latest"
+  },
+  "devDependencies": {
+    "electron": "latest",
+    "electron-builder": "latest"
+  },
+  "trustedDependencies": [
+    "electron"
+  ],
+  "build": {
+    "appId": "com.nick.notes",
+    "productName": "Folio",
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "electron/icons/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false
+    }
+  }
+}

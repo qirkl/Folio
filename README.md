@@ -1,9 +1,9 @@
 # Folio
 
 A classic notes app that looks like it shipped with Mac OS X in 2011. Blurred dark
-sidebar, beveled controls, and a white typing field — built via Tauri 2.
+sidebar, beveled controls, and a white typing field — built with **Electron**.
 
-![the app](docs/preview.jpg)
+![the app](docs/preview.png)
 
 ## Running it
 
@@ -16,34 +16,45 @@ step, so any static server works:
 python -m http.server 4174 --directory src
 ```
 
-Then open <http://127.0.0.1:4174>. Without `window.__TAURI__` the app falls
-back to an in-memory vault, so every interaction is still clickable.
+Then open <http://127.0.0.1:4174>. Without the desktop bridge the app falls back
+to an in-memory vault, so every interaction is still clickable.
 
-**Desktop app** — needs the Rust toolchain (the frontend needs nothing):
+**Desktop app** — needs [bun](https://bun.sh) once, then:
 
 ```powershell
-pwsh -File tools/tauri.ps1 dev      # compile and launch
-pwsh -File tools/tauri.ps1 build    # release build + NSIS installer
-pwsh -File tools/tauri.ps1 run      # launch the last release build
+bun install     # electron, electron-builder, koffi
+bun start       # launch
 ```
 
-That script exists because two things on this machine are not where you would
-expect: scoop installs rustup into `persist\rustup` (so cargo is not on PATH),
-and we build with the **GNU** toolchain because the MSVC Build Tools are not
-installed. See the header of `tools/tauri.ps1` for the MSVC path, which is the
-one Tauri officially supports.
+To produce an installer:
+
+```powershell
+bun run dist    # NSIS installer in dist/
+```
 
 ## Layout
 
 ```
 src/                 the frontend, served as-is (no bundler)
 src/js/markdown.js   markdown <-> editor HTML, the only part with tests
-src-tauri/           Rust backend, window config, capabilities
+electron/main.js     the window, the IPC channel, window controls
+electron/preload.js  the small window.__TAURI__-shaped bridge the page talks to
+electron/vault.js    the vault, settings and note files
+electron/material.js the Windows window material (DWM, via koffi)
+electron/icons/      app icon, source and generated sizes
 tools/make_icons.ps1 regenerates the whole icon set from one source PNG
-tools/markdown.test.js   35 checks, `bun tools/markdown.test.js`
-tools/tauri.ps1      dev / build / run, with this machine's env quirks handled
+tools/markdown.test.js   73 checks, `bun tools/markdown.test.js`
 PLAN.md              design system, architecture, roadmap
 ```
+
+The renderer is untouched by the port: `src/index.html` and `src/js/markdown.js`
+are the same files the Tauri build used. `electron/preload.js` provides the small
+`window.__TAURI__` surface they were written against — `invoke`, `dialog.open`,
+`window.getCurrentWindow()`, and drag-drop events — so the frontend needed a shim,
+not a rewrite.
+
+The Tauri build is not gone: it is in the history of this branch (commit
+`1315bfc`) and on the `electron` branch as it was before the port.
 
 ## Where the notes live
 
@@ -57,11 +68,14 @@ tree. Deletes move a note to `.trash/` rather than unlinking it, and writes are
 atomic (write a sibling `.tmp`, then rename) so a crash mid-save cannot
 truncate a note.
 
-Markdown is the storage format, so `src/js/markdown.js` converts both ways and
-is the only frontend logic with real edge cases:
+The Electron build reads the **same settings file** the Tauri build used,
+`%APPDATA%\com.nick.notes` — so the notes folder, per-note fonts, sizes, spacing,
+pins and the open note all carry over with no migration.
+
+Markdown is the storage format, so `src/js/markdown.js` converts both ways:
 
 ```powershell
-bun tools/markdown.test.js     # 35 checks, including a full round trip
+bun tools/markdown.test.js     # 73 checks, including a full round trip
 ```
 
 Underline is written as inline `<u>` and the yellow highlight as `==mark==`,
@@ -70,44 +84,34 @@ percent-encoded so an SVG payload's brackets cannot break the link.
 
 ## Notes on the build
 
-- **No JavaScript toolchain.** `frontendDist` points straight at `src/` and
-  `withGlobalTauri` exposes `window.__TAURI__`, so there is no npm install
-  anywhere in this repo.
-- **The window is borderless and transparent** (`decorations: false`), with a
-  **Windows caption bar** — minimise, maximise/restore and close on the right,
-  wired to the real window, and the rest of the top strip drags the window.
-- **The OS owns the material and the corners.** The sidebar gets real
-  **Aero blur** via `window-vibrancy`'s `apply_blur`, so it blurs your actual
-  desktop rather than a CSS gradient. Acrylic was tried first and rejected: on
-  Windows 10 it recomputes a noise layer every frame while dragging, which made
-  moving the window crawl. There is also **no CSS `backdrop-filter` in the app**
-  — one blur only, and the browser preview fakes its glass behind
-  `html:not(.tauri)` so the two can never stack. Which material the OS accepted
-  is recorded in `%APPDATA%\com.nick.notes\material.log`, because the effect
-  cannot be seen in a screenshot of the window itself.
-- **The build output lives outside the repo.** `CARGO_TARGET_DIR` points at
-  `~\notes-target`, because the GNU resource compiler cannot handle a space in
-  `$OUT_DIR` — `embed-resource` passes it to `windres` as `--include-dir`, which
-  forwards it to `cc1` unquoted, so `...\Default Project\...` is truncated at
-  the space. See the header of `tools/tauri.ps1`.
-- **Icons are generated from one source PNG.** `pwsh -File tools/make_icons.ps1`
-  renders the PNGs, the multi-size `.ico` and the `.icns` with .NET's imaging —
-  no Pillow, no ImageMagick — and hand-assembles the icon containers, because
-  nothing on this machine will write a multi-size icon for you. The source lives
-  at `src-tauri/icons/source.png`; nothing is ever upscaled beyond it.
+- **No JavaScript build step.** `main.js` loads `src/index.html` straight from
+  disk. bun is only the package manager (for Electron itself) and the test
+  runner; there is no bundler and no transpiling anywhere.
+- **The window is borderless and transparent**, with a **Windows caption bar** —
+  minimise, maximise/restore and close on the right, wired to the real window —
+  and the rest of the top strip drags it (`-webkit-app-region: drag`).
+- **The material is the OS's.** `electron/material.js` calls the same
+  `SetWindowCompositionAttribute` the Rust build used, through `koffi`, because
+  Electron's own `backgroundMaterial` is Windows 11 only. Acrylic at rest, the
+  cheaper Aero blur while the window moves — moving is where acrylic's
+  per-frame noise layer used to crawl. If the call is refused, the window falls
+  back to the solid Classic colour rather than showing a sharp desktop through
+  the sidebar.
+- **Icons are generated from one source PNG.**
+  `pwsh -File tools/make_icons.ps1` renders the PNGs and the multi-size `.ico`
+  with .NET's imaging — no Pillow, no ImageMagick — and hand-assembles the icon
+  container. The source lives at `electron/icons/source.png`.
 - **The backend is small on purpose:** `vault`, `set_vault`, `reveal_vault`,
-  `create_folder`, `read_note`, `write_note`, `delete_note`, `rename_note`.
+  `create_folder`, `read_note`, `write_note`, `delete_note`, `rename_note`,
+  `rename_folder`, `delete_folder`, `move_entry`, `import_files`, `set_order`,
+  `set_pinned`, `settings` and the per-note setters.
 
 ## Status
 
-**Building and running.** The desktop app compiles and launches on this machine
-with the GNU toolchain, and the notes folder, autosave, rename and the markdown
-round trip all work against real files on disk.
+**Building and running on Electron.** The notes folder, autosave, rename, pinning,
+search, read mode, framed pictures and the markdown round trip all work against
+real files on disk, and the settings are shared with the Tauri build.
 
 ![the app running](docs/app-running.png)
 
-Not done yet: the toolbar is still `execCommand`-based, deleting from the
-sidebar has a backend command but no UI, and the acrylic tint needs judging on
-an actual desktop (a `PrintWindow` capture cannot show the DWM backdrop). See
-[PLAN.md](PLAN.md) for the roadmap.
-
+See [PLAN.md](PLAN.md) for the roadmap.

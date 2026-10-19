@@ -6,13 +6,13 @@
 # and .icns containers, because neither System.Drawing nor Tauri's CLI will
 # write a multi-size icon for you.
 #
-# The source is committed at src-tauri/icons/source.png so the set is
+# The source is committed at electron/icons/source.png so the set is
 # reproducible. Never upscale beyond the source: a 256px source yields a crisp
 # 256 icon and a blurry 512 one, so 512 is deliberately not produced.
 
 param(
-    [string]$Source = "$PSScriptRoot\..\src-tauri\icons\source.png",
-    [string]$OutDir = "$PSScriptRoot\..\src-tauri\icons"
+    [string]$Source = "$PSScriptRoot\..\electron\icons\source.png",
+    [string]$OutDir = "$PSScriptRoot\..\electron\icons"
 )
 
 $ErrorActionPreference = 'Stop'

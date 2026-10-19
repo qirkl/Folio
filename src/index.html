@@ -154,6 +154,11 @@
   .cap-btn img.restore,
   .cap-btn img.close{width:14px}
   .cap-btn:hover{background:rgba(255,255,255,0.10)}
+
+  /* Frameless window dragging. Tauri owns data-tauri-drag-region; Electron needs
+     the CSS property, and ignores it when it is not applicable. */
+  .drag{-webkit-app-region:drag}
+  .cap-btn{-webkit-app-region:no-drag}
   .cap-btn:active{background:rgba(255,255,255,0.18)}
   .cap-btn.close:hover{background:#c42b1c}
   .cap-btn.close:active{background:#a51d10}
