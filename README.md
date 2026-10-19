@@ -41,16 +41,16 @@ The page was written for Tauri first and still calls `window.__TAURI__`.
 `electron/preload.js` provides that, so the frontend did not change when the
 app moved to Electron.
 
-## Where the notes are
+## Notes location
 
-Default path in Windows is `Documents/Notes` unless you pick another folder from the gear
+Default path is `Documents/Notes` unless you pick another folder from the gear
 menu. Subfolders are real subfolders, so the tree is just the folder.
 
 Deleting moves a note or folder into `.trash/` instead of removing it. Saving
 writes a temp file and renames it, so an interrupted save can't leave half a
 note behind.
 
-Settings are in `%APPDATA%\com.nick.notes\settings.json`.
+Settings are located in `%APPDATA%\com.nick.notes\settings.json`.
 
 Pictures are stored inside the note as data URIs, and their frame position goes
 in the image title (`![alt](photo.png "300x212+12+0")`). The note stays valid
@@ -63,4 +63,5 @@ call fails the window uses a solid colour instead.
 ## Status
 
 Works on Windows: notes on disk, autosave, rename, pin, search, read mode,
-photo frames, per-note font and spacing, undo. Not built as an installer yet. MacOS support is planned in the future.
+photo frames, per-note font and spacing, undo. Not built as an installer yet.
+MacOS support is planned in the future.
