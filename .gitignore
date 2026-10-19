@@ -1,11 +1,7 @@
-# Rust / Tauri. The build directory deliberately lives OUTSIDE the repo, at
-# ~/notes-target: the GNU resource compiler truncates any path containing a
-# space, so `...\Default Project\...\target\...` cannot be used. See
-# tools/tauri.ps1.
-/src-tauri/target/
-
-# Frontend preview
+# Dependencies
 node_modules/
+
+# electron-builder output
 dist/
 
 # OS noise
