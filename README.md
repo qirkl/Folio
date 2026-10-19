@@ -62,6 +62,8 @@ call fails the window uses a solid colour instead.
 
 ## Status
 
-Works on Windows: notes on disk, autosave, rename, pin, search, read mode,
-photo frames, per-note font and spacing, undo. Not built as an installer yet.
+Works on Windows: notes on disk, autosave, rename, pin, search, photo frames,
+per-note font and spacing, undo.
+Read mode is broken currently.
+Not built as an installer yet.
 MacOS support is planned in the future.
