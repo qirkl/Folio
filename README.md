@@ -1,10 +1,9 @@
 # Folio
 
 A notes app for Windows that looks like an old Mac OS X app. Dark translucent
-sidebar, beveled buttons, a white page to type on. Notes are plain markdown
-files in a folder you choose.
+sidebar, beveled buttons, a white page to type on. Notes are stored in plain markdown inside the local folder of your choice.
 
-![Folio](docs/preview.png)
+![Folio](docs/preview.jpg)
 
 ## Running it
 
@@ -17,16 +16,7 @@ bun start
 
 An installer is `bun run dist`. That path has not been tested yet.
 
-For design work there is a browser preview, which needs nothing installed:
-
-```
-python -m http.server 4174 --directory src
-```
-
-Open http://127.0.0.1:4174. Without Electron the app keeps its notes in memory,
-so clicking around won't touch any files.
-
-## Tests
+## Testing
 
 ```
 bun tools/markdown.test.js
@@ -53,25 +43,24 @@ app moved to Electron.
 
 ## Where the notes are
 
-They live in `Documents/Notes` unless you pick another folder from the gear
+Default path in Windows is `Documents/Notes` unless you pick another folder from the gear
 menu. Subfolders are real subfolders, so the tree is just the folder.
 
 Deleting moves a note or folder into `.trash/` instead of removing it. Saving
 writes a temp file and renames it, so an interrupted save can't leave half a
 note behind.
 
-Settings are in `%APPDATA%\com.nick.notes\settings.json`. The Tauri build used
-the same file, so moving to Electron did not need a migration.
+Settings are in `%APPDATA%\com.nick.notes\settings.json`.
 
 Pictures are stored inside the note as data URIs, and their frame position goes
 in the image title (`![alt](photo.png "300x212+12+0")`). The note stays valid
 markdown and the frames come back where you left them.
 
-The blur behind the sidebar is the Windows one. Electron only does acrylic on
+The blur behind the sidebar is native Windows material. Electron only does acrylic on
 Windows 11, so Windows 10 is handled directly in `electron/material.js`. If the
 call fails the window uses a solid colour instead.
 
 ## Status
 
 Works on Windows: notes on disk, autosave, rename, pin, search, read mode,
-photo frames, per-note font and spacing, undo. Not built as an installer yet.
+photo frames, per-note font and spacing, undo. Not built as an installer yet. MacOS support is planned in the future.
