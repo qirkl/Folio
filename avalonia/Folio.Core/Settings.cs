@@ -26,6 +26,8 @@ public sealed class Settings
     /// <summary>Notes left in read mode, by vault-relative path. It is a note's
     /// own state rather than the app's, so switching notes leaves each as it was.</summary>
     public List<string> ReadNotes { get; set; } = new();
+    /// <summary>Folders left closed in the sidebar, by vault-relative path.</summary>
+    public List<string> CollapsedFolders { get; set; } = new();
     public bool TitleInline { get; set; }
     public uint SidebarWidth { get; set; } = 300;
 }

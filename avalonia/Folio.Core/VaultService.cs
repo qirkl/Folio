@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Folio.Core;
 
@@ -33,21 +35,26 @@ public sealed class VaultService
 
     // ------------------------------------------------------------- settings
 
+    /// <summary>Parsed once and kept; every command used to re-read the file,
+    /// which is wasted work on something as hot as a note switch.</summary>
+    private Settings? _settings;
+
     public Settings LoadSettings()
     {
         lock (_gate)
         {
+            if (_settings is not null) return _settings;
             try
             {
-                if (!File.Exists(SettingsPath)) return new Settings();
+                if (!File.Exists(SettingsPath)) return _settings = new Settings();
                 var json = File.ReadAllText(SettingsPath);
-                return JsonSerializer.Deserialize<Settings>(json, JsonOptions) ?? new Settings();
+                return _settings = JsonSerializer.Deserialize<Settings>(json, JsonOptions) ?? new Settings();
             }
             catch
             {
                 // A malformed file must not stop the app from opening. The next
                 // save rewrites it, which is what the Rust backend did too.
-                return new Settings();
+                return _settings = new Settings();
             }
         }
     }
@@ -56,6 +63,7 @@ public sealed class VaultService
     {
         lock (_gate)
         {
+            _settings = settings;
             Directory.CreateDirectory(ConfigDir);
             var json = JsonSerializer.Serialize(settings, JsonOptions);
             var tmp = SettingsPath + ".tmp";
@@ -240,6 +248,7 @@ public sealed class VaultService
             Spacing = settings.NoteSpacing,
             Sizes = settings.NoteSizes,
             ReadNotes = settings.ReadNotes ?? new(),
+            CollapsedFolders = settings.CollapsedFolders ?? new(),
             SidebarWidth = settings.SidebarWidth == 0 ? 300u : settings.SidebarWidth,
             TitleInline = settings.TitleInline,
         };
@@ -345,12 +354,46 @@ public sealed class VaultService
         SaveSettings(settings);
     }
 
+    /// <summary>Closed folders, so the sidebar comes back as it was left.</summary>
+    public void SetCollapsedFolders(IEnumerable<string> paths)
+    {
+        var settings = LoadSettings();
+        settings.CollapsedFolders = paths.Where(p => !string.IsNullOrWhiteSpace(p)).Distinct().ToList();
+        SaveSettings(settings);
+    }
+
     public void CreateFolder(string path) => Directory.CreateDirectory(Resolve(path));
 
     public string ReadNote(string path)
     {
         var file = NoteFile(path);
-        return File.Exists(file) ? File.ReadAllText(file) : "";
+        if (!File.Exists(file)) return "";
+
+        var body = File.ReadAllText(file);
+
+        /* Photos used to live inside the markdown as data URIs. A note with a
+           couple of them reached several megabytes, and every open paid for it
+           twice: once crossing the bridge as a script, once as HTML to parse.
+           Externalising happens here, on the way out, so the page never sees the
+           big body. The old file is kept beside it as .bak. */
+        var smaller = ExternaliseImages(body);
+        if (!string.Equals(smaller, body, StringComparison.Ordinal))
+        {
+            try
+            {
+                File.Copy(file, file + ".bak", true);
+                var tmp = file + ".tmp";
+                File.WriteAllText(tmp, smaller);
+                File.Move(tmp, file, true);
+                body = smaller;
+            }
+            catch
+            {
+                // A read must still succeed even if the tidy-up does not.
+            }
+        }
+
+        return ForPage(body);
     }
 
     public string WriteNote(string path, string body)
@@ -359,12 +402,88 @@ public sealed class VaultService
         var parent = Path.GetDirectoryName(file);
         if (parent is not null) Directory.CreateDirectory(parent);
 
+        // The page works in file:// URLs for attachments; the file keeps them
+        // relative so the vault stays portable.
+        var onDisk = ExternaliseImages(ForDisk(body));
+
         // Write a sibling and swap it in, so a crash mid-save cannot truncate.
         var tmp = file + ".tmp";
-        File.WriteAllText(tmp, body);
+        File.WriteAllText(tmp, onDisk);
         File.Move(tmp, file, true);
         return file;
     }
+
+    // ------------------------------------------------------------ attachments
+
+    public const string AttachmentsDir = ".attachments";
+
+    private static readonly Regex InlineImage = new(
+        @"data:image/(?<ext>png|jpe?g|gif|webp|bmp);base64,(?<data>[A-Za-z0-9+/=]+)",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private string AttachmentsUrl
+    {
+        get
+        {
+            var dir = VaultDir;
+            if (!dir.EndsWith(Path.DirectorySeparatorChar)) dir += Path.DirectorySeparatorChar;
+            return new Uri(dir).AbsoluteUri + AttachmentsDir + "/";
+        }
+    }
+
+    /// <summary>
+    /// Moves every inline image into .attachments, named by content hash so the
+    /// same picture is stored once. Returns the original text if any image fails
+    /// to decode, so a note is never left half converted.
+    /// </summary>
+    private string ExternaliseImages(string body)
+    {
+        if (body.IndexOf("data:image/", StringComparison.OrdinalIgnoreCase) < 0) return body;
+
+        var dir = Path.Combine(VaultDir, AttachmentsDir);
+        try { Directory.CreateDirectory(dir); } catch { return body; }
+
+        var ok = true;
+        var rewritten = InlineImage.Replace(body, match =>
+        {
+            try
+            {
+                var ext = match.Groups["ext"].Value.ToLowerInvariant() switch
+                {
+                    "jpeg" => "jpg",
+                    var other => other
+                };
+                var bytes = Convert.FromBase64String(match.Groups["data"].Value);
+                var hash = Convert.ToHexString(SHA1.HashData(bytes)).ToLowerInvariant();
+                var name = hash + "." + ext;
+                var file = Path.Combine(dir, name);
+
+                if (!File.Exists(file))
+                {
+                    var tmp = file + ".tmp";
+                    File.WriteAllBytes(tmp, bytes);
+                    File.Move(tmp, file, true);
+                }
+
+                return AttachmentsDir + "/" + name;
+            }
+            catch
+            {
+                ok = false;
+                return match.Value;
+            }
+        });
+
+        return ok ? rewritten : body;
+    }
+
+    private string ForPage(string body) =>
+        body.IndexOf(AttachmentsDir + "/", StringComparison.Ordinal) < 0
+            ? body
+            : body.Replace(AttachmentsDir + "/", AttachmentsUrl);
+
+    private string ForDisk(string body) =>
+        body.Replace(AttachmentsUrl, AttachmentsDir + "/");
 
     public void DeleteNote(string path)
     {

@@ -29,6 +29,7 @@ public sealed class AppSettings
     public Dictionary<string, float> Spacing { get; set; } = new();
     public Dictionary<string, float> Sizes { get; set; } = new();
     public List<string> ReadNotes { get; set; } = new();
+    public List<string> CollapsedFolders { get; set; } = new();
     public uint SidebarWidth { get; set; } = 300;
     public bool TitleInline { get; set; }
 }

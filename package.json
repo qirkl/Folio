@@ -14,6 +14,7 @@
     "koffi": "latest"
   },
   "devDependencies": {
+    "@highlighters/core": "^2.0.0",
     "electron": "latest",
     "electron-builder": "latest"
   },

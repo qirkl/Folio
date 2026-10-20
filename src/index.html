@@ -637,6 +637,58 @@
   }
   body.value-drag{cursor:ns-resize;user-select:none}
 
+  /* --------------------------------------------------------------- startup */
+  /* The sidebar mock and the mock note are markup; the vault is data. While it
+     is being read they are hidden and this stands in, so the first frame never
+     shows made-up notes. Removed as soon as the first note is on screen. */
+  #boot{display:none}
+  html.booting #boot{display:block}
+  html.booting #treeDemo{display:none}
+  /* the tree itself is painted before boot ends; hide it so nothing shifts */
+  html.booting #treeLive{display:none}
+  html.booting .content{opacity:0}
+  .content{transition:opacity .18s ease}
+
+  .boot-spin{
+    width:15px;height:15px;margin:20px 14px 9px;
+    border:2px solid rgba(255,255,255,0.18);
+    border-top-color:rgba(255,255,255,0.8);
+    border-radius:50%;
+    animation:boot-spin .7s linear infinite;
+  }
+  @keyframes boot-spin{to{transform:rotate(360deg)}}
+
+  .boot-note{
+    padding:0 14px 2px;
+    font-size:12px;letter-spacing:.02em;
+    color:rgba(255,255,255,0.55);
+  }
+  .boot-rows{display:flex;flex-direction:column;gap:9px;padding:14px}
+  .boot-row{
+    height:20px;border-radius:5px;
+    background:rgba(255,255,255,0.06);
+    animation:boot-pulse 1.3s ease-in-out infinite;
+  }
+  .boot-row:nth-child(2){width:78%;animation-delay:.15s}
+  .boot-row:nth-child(3){width:62%;animation-delay:.3s}
+  @keyframes boot-pulse{0%,100%{opacity:.5}50%{opacity:1}}
+
+  /* Leaving the loading state: the sidebar and the page rise into place and
+     settle with a small overshoot, the way iOS panels do. One animation for the
+     list as a whole, not one per row — with a long folder a per-row stagger only
+     reached the first few rows, which read as a glitch, and it competed with the
+     folder-open animation. */
+  #treeLive.arriving{animation:boot-in .34s cubic-bezier(.2,.9,.25,1) both}
+  .content.arriving{animation:boot-in .38s cubic-bezier(.2,.9,.25,1) both}
+  @keyframes boot-in{
+    0%{opacity:0;transform:translateY(7px) scale(.998)}
+    62%{opacity:1;transform:translateY(-1.5px) scale(1)}
+    100%{opacity:1;transform:none}
+  }
+  @media (prefers-reduced-motion: reduce){
+    #treeLive.arriving,.content.arriving{animation:none}
+  }
+
   /* ------------------------------------------------------------ animation */
   @keyframes row-in{
     from{opacity:0;transform:translateY(-5px)}
@@ -788,8 +840,11 @@
     border-radius:2px;
   }
   .editor .mark{
-    background:var(--paper-mark-bg);color:var(--paper-mark-ink);
-    box-shadow:0 0 0 1px var(--paper-mark-ring);border-radius:2px;
+    /* The stroke is drawn by @highlighters, an overlay of its own: this span
+       only records *which* text is marked, so the note keeps ==...== and the
+       page shows the pen. No background here, or the two would stack. */
+    background:none;color:inherit;
+    box-shadow:none;border-radius:0;
   }
 
   .photos{position:relative;min-height:250px;margin:12px 0 18px}
@@ -936,6 +991,15 @@
   (function () {
     var doc = document.documentElement;
     if (!window.__TAURI__) doc.classList.add('preview');
+    // In the app the tree and the note in the markup are mocks. Hide them from
+    // the first frame; the sidebar shows a loading state until the vault is read.
+    else {
+      doc.classList.add('booting');
+      // When the boot began, so the loading state can be held for a moment even
+      // when the vault answers immediately — otherwise it flashes past and the
+      // reveal reads as a stutter rather than a transition.
+      window.__folioBootAt = Date.now();
+    }
 
     function read(key, fallback) {
       try { return localStorage.getItem(key) || fallback; } catch (e) { return fallback; }
@@ -995,6 +1059,18 @@
     </div>
 
     <div class="scroll">
+      <!-- The tree below is markup, not data: it exists for the browser preview.
+           In the app it is hidden from the first frame and this stands in until
+           the vault has been read. -->
+      <div id="boot" aria-hidden="true">
+        <div class="boot-spin"></div>
+        <div class="boot-note">Loading notes…</div>
+        <div class="boot-rows">
+          <div class="boot-row"></div>
+          <div class="boot-row"></div>
+          <div class="boot-row"></div>
+        </div>
+      </div>
      <div id="treeDemo">
       <div class="section">Pinned Notes</div>
 
@@ -1152,7 +1228,15 @@
         </div>
       </div>
       <div class="tb-sep"></div>
-      <div class="tb-group"><div class="swatch"></div></div>
+      <div class="tb-group">
+        <div class="tbtn" id="markBtn" title="Highlighter — mark the selected text">
+          <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true">
+            <path d="M2.2 12.8h4.1l6.9-6.9-2.4-2.4-6.9 6.9v2.4Z" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/>
+            <path d="M9.4 4.7l2.4 2.4" stroke="currentColor" stroke-width="1.1"/>
+            <path d="M2.2 12.8h10.6" stroke="#e0b400" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
       <div class="tb-sep"></div>
       <div class="seg" id="styleGroup">
         <div class="tbtn" data-cmd="bold" title="Bold"><span class="glyph b">B</span></div>
@@ -1212,6 +1296,7 @@
   </main>
 </div>
 
+<script src="js/highlighters.js"></script>
 <script src="js/markdown.js"></script>
 <script>
   const MD = window.NotesMarkdown;
@@ -1260,6 +1345,7 @@
 
   function setReadMode(on, persist = true) {
     readMode = !!on;
+    if (readMode) setMarkMode(false);      // a locked note takes no highlighter
     editor.setAttribute('contenteditable', readMode ? 'false' : 'true');
     editor.classList.toggle('read-mode', readMode);
     readBtn.classList.toggle('on', readMode);
@@ -1280,7 +1366,7 @@
     syncToolbarState();
   }
 
-  readBtn.addEventListener('mousedown', e => e.preventDefault());  // keep the selection
+    readBtn.addEventListener('mousedown', e => e.preventDefault());  // keep the selection
   readBtn.addEventListener('click', () => setReadMode(!readMode));
 
   // --- toolbar: wire the style + alignment buttons -------------------------
@@ -1336,8 +1422,16 @@
   const stats  = document.getElementById('stats');
 
   function updateStats(){
-    const text = editor.innerText.replace(/\u00a0/g, ' ').trim();
-    const words = text ? text.split(/\s+/).length : 0;
+    /* textContent rather than innerText: innerText forces a layout pass, and
+       this runs on every keystroke and every note switch. Blocks are joined
+       with a space so words either side of a boundary don't run together. */
+    let text = '';
+    for (const child of editor.childNodes) {
+      if (child.nodeType === 3) { text += child.textContent; continue; }
+      text += (child.textContent || '') + ' ';
+    }
+    text = text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+    const words = text ? text.split(' ').length : 0;
     stats.textContent = words + ' Words \u2013 ' + text.replace(/\s/g, '').length + ' Characters';
   }
   // --- undo / redo ----------------------------------------------------------
@@ -1362,12 +1456,14 @@
 
   function restore(html) {
     restoring = true;
+    clearMarks();
     editor.innerHTML = html;
     savedRange = null;                    // the range pointed into the replaced DOM
     normalizeHeadings();
     fitAllPhotos();
     updateStats();
     syncToolbarState();
+    paintMarks();
     editor.focus();
     restoring = false;
     scheduleSave();
@@ -1400,6 +1496,12 @@
       if (redo()) e.preventDefault();
     }
   });
+
+  // The first edit of a freshly opened note seeds the history with the state it
+  // opened in, before that edit lands.
+  editor.addEventListener('beforeinput', () => {
+    if (!undoStack.length) undoStack = [editor.innerHTML];
+  }, true);
 
   editor.addEventListener('input', () => { updateStats(); snapshot(false); });
 
@@ -1471,6 +1573,9 @@
         fig.style.top  = Math.max(-200, box.top + dy) + 'px';
       }
       if (group) fitPhotos(group);
+      // frames move in their own layer; nothing else notices the text shifting
+      // underneath, so the marks are asked to catch up on every frame
+      refreshMarks();
     };
     const stop = () => {
       fig.classList.remove('dragging');
@@ -1759,6 +1864,7 @@
     }
     fmtMenu.hidden = true;
     syncToolbarState();
+    paintMarks();                                // a mark made from the menu gets its stroke
     scheduleSave();
   }
 
@@ -2275,6 +2381,162 @@
     return [node];
   }
 
+  /* ------------------------------------------------------------- highlighter */
+  /* The mark lives in the note as span.mark, which the markdown writes as
+     ==text==. The stroke above it is drawn by @highlighters (vendored in
+     js/highlighters.js): it paints an overlay and never touches the text, so
+     selection, copying and the file all keep working. Solid yellow, no fade. */
+  const markBtn = document.getElementById('markBtn');
+
+  const MARK_LOOK = {
+    color: '#ffe36b',                 // warm yellow, solid rather than a wash
+    /* The live preview snapped to the surrounding word while the committed mark
+       used the exact selection, so dragging over one letter previewed the whole
+       word and then shrank on release. No snapping, so the two agree. */
+    snap: 'none',
+    tip: { type: 'bullet', width: 24, thickness: 10, angle: 0, overshoot: 2 },
+    ink: { flow: 0.8, dryout: 0, feathering: 0.45, streakiness: 0.12 },
+    edge: { radius: 8, waviness: 0.35, roughness: 0.1 },
+    opacity: 0.95,
+    /* Draw-on is off on purpose. The stroke layer is repainted whenever the note
+       scrolls or another mark is made, and every highlight() call would replay
+       the swipe — the marks appeared to redraw themselves constantly. */
+    animation: { draw: false }
+  };
+
+  let markHandles = [];
+  let markMode = false;
+  let markPreview = null;
+  let markRepaintFrame = 0;
+
+  /* Coalesced to one repaint per frame: called on every keystroke, every frame of
+     a picture drag and on scroll, so it cannot afford to queue up. */
+  function refreshMarks() {
+    if (markRepaintFrame || !markHandles.length) return;
+    markRepaintFrame = requestAnimationFrame(() => {
+      markRepaintFrame = 0;
+      paintMarks();
+    });
+  }
+
+  function clearMarks() {
+    markHandles.forEach(handle => { try { handle.remove(); } catch (_) {} });
+    markHandles = [];
+  }
+
+  function paintMarks() {
+    clearMarks();
+    const lib = window.Highlighters;
+    if (lib && typeof lib.highlight === 'function') {
+      editor.querySelectorAll('span.mark').forEach(el => {
+        try { markHandles.push(lib.highlight(el, MARK_LOOK)); } catch (_) {}
+      });
+    }
+    clipMarks();
+    const scroller = document.querySelector('.editor-wrap');
+    if (scroller) scroller.dataset.markScroll = String(scroller.scrollTop);
+  }
+
+  /* The library anchors its stroke layers to the page, in page coordinates.
+     Clip every one of them to the note's *scrolling* box — the editor itself is
+     the whole document and extends past the viewport, so clipping to it hid
+     nothing and marks painted over the toolbar. */
+  function clipMarks() {
+    const wrap = document.querySelector('.editor-wrap');
+    const layers = document.querySelectorAll('[data-highlighters-overlay]');
+    if (!wrap || !layers.length) return;
+    const w = wrap.getBoundingClientRect();
+
+    layers.forEach(layer => {
+      const l = layer.getBoundingClientRect();
+      if (!l.width || !l.height) return;
+      const top = Math.max(0, w.top - l.top);
+      const left = Math.max(0, w.left - l.left);
+      const right = Math.max(0, l.right - w.right);
+      const bottom = Math.max(0, l.bottom - w.bottom);
+      layer.style.clipPath =
+        'inset(' + Math.round(top) + 'px ' + Math.round(right) + 'px ' +
+        Math.round(bottom) + 'px ' + Math.round(left) + 'px)';
+    });
+  }
+
+  /* Marks must never touch or sit inside one another. Two adjacent spans would
+     be written as ==a====b==, which reads back as the wrong pair of marks and
+     swallows text; a nested one is the same problem with extra steps. */
+  function tidyMarks() {
+    editor.querySelectorAll('span.mark span.mark').forEach(inner => {
+      inner.replaceWith(...inner.childNodes);
+    });
+    editor.querySelectorAll('span.mark').forEach(span => {
+      for (;;) {
+        // An insert can leave an empty text node between two marks; look past it
+        // rather than declaring them separate.
+        let next = span.nextSibling;
+        while (next && next.nodeType === 3 && next.nodeValue === '') next = next.nextSibling;
+        if (!next || next.nodeType !== 1 || !next.classList || !next.classList.contains('mark')) break;
+
+        for (let n = span.nextSibling; n && n !== next;) {
+          const after = n.nextSibling;
+          if (n.nodeType === 3 && n.nodeValue === '') n.remove();
+          n = after;
+        }
+        while (next.firstChild) span.appendChild(next.firstChild);
+        next.remove();
+      }
+    });
+  }
+
+  /* Arming the pen turns it into a mode, not a one-off action: the library's
+     selection renderer paints the live selection while the mouse is held, and
+     releasing commits it to the note as span.mark (which the markdown writes as
+     ==text==) and repaints the permanent stroke. Pressing again puts it away. */
+  function setMarkMode(on) {
+    const arm = !!on && !readMode;
+    markMode = arm;
+    markBtn.classList.toggle('on', arm);
+    markBtn.title = arm ? 'Highlighter on — select text to mark it' : 'Highlighter';
+
+    if (markPreview) {
+      try { markPreview.remove(); } catch (_) {}
+      markPreview = null;
+    }
+    const lib = window.Highlighters;
+    if (arm && lib && typeof lib.highlightSelection === 'function') {
+      try { markPreview = lib.highlightSelection(MARK_LOOK); } catch (_) { markPreview = null; }
+    }
+  }
+
+  markBtn.addEventListener('mousedown', e => e.preventDefault());   // keep the selection
+  markBtn.addEventListener('click', () => setMarkMode(!markMode));
+
+  /* Releasing the mouse over the editor commits whatever was selected. */
+  editor.addEventListener('mouseup', () => {
+    if (!markMode || readMode) return;
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount || sel.isCollapsed) return;
+    if (!editor.contains(sel.anchorNode) || !editor.contains(sel.focusNode)) return;
+
+    snapshot(true);                       // the mark is an edit, so undo can take it back
+
+    const made = applyInlineToSelection(() => {
+      const span = document.createElement('span');
+      span.className = 'mark';
+      return span;
+    });
+    if (!made.length) return;
+
+    tidyMarks();
+    paintMarks();
+    // once the browser has laid the new span out, place the stroke again: the
+    // first pass measures the text before it has settled
+    requestAnimationFrame(() => requestAnimationFrame(() => paintMarks()));
+    scheduleSave();
+
+    // the preview would double the ink over the mark we just made
+    sel.removeAllRanges();
+    setMarkMode(true);
+  });
+
   /* Styles the selection. A range spanning several blocks wraps each block's
      *contents*, never the blocks themselves: a <p> inside a <span> is invalid
      HTML, it dropped those paragraphs out of the centred column, and the
@@ -2592,6 +2854,42 @@
   const statusEl = document.getElementById('status');
   const demoTree = document.getElementById('treeDemo');
   const liveTree = document.getElementById('treeLive');
+
+  /* The head script marks the document as booting before the first paint, so the
+     mock tree and note never appear. Once the first note is on screen the class
+     comes off, the rows settle in and the page fades up.
+
+     The loading state is held for a short minimum even when the vault answers at
+     once: a single frame of spinner followed by a hard cut is what read as
+     choppy. Long enough to register, short enough to never feel like waiting. */
+  const BOOT_MIN_MS = 420;    // long enough for the spinner to register
+  const BOOT_TAIL_MS = 160;   // and always one small beat longer than the load
+  let bootFinishing = false;
+
+  function finishBoot() {
+    if (bootFinishing) return;
+    bootFinishing = true;
+
+    const doc = document.documentElement;
+    if (!doc.classList.contains('booting')) return;
+
+    const started = window.__folioBootAt || Date.now();
+    const hold = Math.max(0, BOOT_MIN_MS - (Date.now() - started)) + BOOT_TAIL_MS;
+
+    setTimeout(() => {
+      doc.classList.remove('booting');
+
+      const content = document.querySelector('.content');
+      liveTree.classList.add('arriving');
+      if (content) content.classList.add('arriving');
+
+      setTimeout(() => {
+        liveTree.classList.remove('arriving');
+        if (content) content.classList.remove('arriving');
+      }, 300);
+    }, hold);
+  }
+
   const prefs    = document.getElementById('prefs');
 
   let vaultPath = '';      // absolute path of the notes folder
@@ -2600,6 +2898,7 @@
   let noteFonts = {};      // note path -> font family, from settings
   let noteSizes = {};      // note path -> base text size, from settings
   let saveTimer = null;    // debounce handle
+  let saveDirty = false;   // something has changed since the last write
 
   const FOLDER_ICON = '📁', NOTE_ICON = '📄', NOTE_TEXT_ICON = '📝';
 
@@ -2645,6 +2944,12 @@
   /* Which folders are closed. Kept here rather than as DOM state so a tree
      refresh (after a save, rename or reorder) cannot lose it. */
   const collapsed = new Set();
+
+  /* Which folders are closed belongs to the vault, not to the session: every
+     folder used to reopen on launch because this set started empty. */
+  function rememberCollapsed() {
+    invoke('set_collapsed_folders', { paths: [...collapsed] }).catch(() => {});
+  }
   let lastTree = [];
   let pinned = [];          // vault-relative paths, pinned first
   let searchQuery = '';
@@ -2755,6 +3060,7 @@
   // --- saving -------------------------------------------------------------
   function scheduleSave() {
     if (!onDisk || !currentPath) return;
+    saveDirty = true;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(saveNow, 600);
   }
@@ -2762,26 +3068,26 @@
   async function saveNow() {
     if (!onDisk || !currentPath) return;
     clearTimeout(saveTimer);
+    saveDirty = false;
     try {
       // A notepad note is written back as the text it is, not as markdown.
       const body = isPlain(currentPath) ? htmlToPlain(editorEl) : MD.toMd(editorEl);
 
-      /* Read the markdown back and compare its words with what is on screen. A
-         save that would quietly drop text — a fault in the converter, or a
-         frame caught mid-edit — is refused rather than written, so the file on
-         disk keeps everything that was there. */
+      /* Read the markdown back and compare its text with what is on screen. A
+         save that would quietly drop text - a fault in the converter, or a
+         frame caught mid-edit - is refused rather than written, so the file on
+         disk keeps everything that was there.
+
+         Whitespace is stripped on both sides rather than collapsed: that makes
+         the comparison independent of block boundaries, so it needs no
+         innerText (which would force a layout on every save). */
       if (!isPlain(currentPath)) {
-        /* innerText, not textContent: it keeps a space between blocks, which is
-           the difference between a fair comparison and a false alarm. */
         const back = document.createElement('div');
-        back.style.cssText = 'position:absolute;left:-9999px;top:0;width:640px';
         back.innerHTML = MD.toHtml(body);
-        document.body.appendChild(back);
-        const tidy = s => String(s || '').replace(/\s+/g, ' ').trim();
-        const same = tidy(back.innerText) === tidy(editorEl.innerText);
-        back.remove();
-        if (!same) {
-          showStatus('Not saved — the note could not be written faithfully', vaultPath);
+        const solid = s => String(s || '').replace(/\s+/g, '');
+        if (solid(back.textContent) !== solid(editorEl.textContent)) {
+          saveDirty = true;
+          showStatus('Not saved - the note could not be written faithfully', vaultPath);
           return;
         }
       }
@@ -2825,7 +3131,8 @@
 
   // --- opening ------------------------------------------------------------
   async function openNote(path) {
-    await saveNow();                       // never lose the note we are leaving
+    if (path === currentPath) return;      // already open, nothing to reload
+    if (saveDirty) await saveNow();        // never lose the note we are leaving
     const raw = await invoke('read_note', { path });
     currentPath = path;
     // Each note keeps its own reading state; a note opened for the first time
@@ -2834,6 +3141,7 @@
     createTarget = parentFolder(path);     // Create lands beside the open note
     titleEl.textContent = noteTitle(path);
     setNoteMark(path);
+    clearMarks();                      // the old overlays belong to the last note
     editorEl.innerHTML = isPlain(path) ? plainToHtml(raw) : MD.toHtml(raw);
     // A frame is not editable, so the document needs a paragraph after it or
     // there is nowhere to put the caret.
@@ -2845,13 +3153,73 @@
     normalizeHeadings();
     updateStats();
     syncToolbarState();                                        // nothing carries over from the last note
+    paintMarks();                                              // the pen strokes for this note
+    // and once more after the first frame: the library measures the text when
+    // called, and on the frame the note is laid out those rects can be stale
+    if (editor.querySelector('span.mark')) {
+      requestAnimationFrame(() => requestAnimationFrame(() => paintMarks()));
+    }
+    // The stroke layers are positioned in page coordinates, so they have to be
+    // redrawn whenever the text or the layout moves under them: scrolling,
+    // typing, formatting, a picture resizing, the window resizing. Otherwise a
+    // mark stays where the words used to be until something forces a repaint.
+    const scroller = document.querySelector('.editor-wrap');
+    let repaintFrame = 0;
+    /* Two flavours of the same repaint. A scroll event arrives after the browser
+       has scrolled, so its rects are already correct and one frame is enough.
+       Input and resize change the layout, and a callback in the *next* frame
+       still measures the old one — those need a second frame. */
+    const repaintNow = () => {
+      if (repaintFrame) return;
+      repaintFrame = requestAnimationFrame(() => { repaintFrame = 0; paintMarks(); });
+    };
+    const repaintSoon = () => {
+      if (repaintFrame) return;
+      repaintFrame = requestAnimationFrame(() => {
+        repaintFrame = requestAnimationFrame(() => { repaintFrame = 0; paintMarks(); });
+      });
+    };
+    if (scroller && !scroller.dataset.marksBound) {
+      scroller.dataset.marksBound = '1';
+      /* scroll does not bubble, so listen in the capture phase: that catches the
+         note's own scroller and the window, wherever the scroll happens. */
+      document.addEventListener('scroll', event => {
+        if (!markHandles.length) return;
+        if (event.target === scroller || event.target === document || event.target === document.documentElement) {
+          repaintNow();
+        }
+      }, { passive: true, capture: true });
+      window.addEventListener('resize', () => { if (markHandles.length) repaintSoon(); });
+
+      /* No debounce on typing: a repaint is a few milliseconds, and waiting for
+         the typist to stop is what made the stroke lag behind the words. */
+      editor.addEventListener('input', refreshMarks, { passive: true });
+
+      if (typeof ResizeObserver === 'function') {
+        new ResizeObserver(() => { if (markHandles.length) repaintSoon(); }).observe(editor);
+      }
+
+      /* Safety net for scroll. Some engines throttle scroll events (a window in
+         the background, for one), and a stroke sitting on words that have moved
+         is worse than a repaint every so often: this checks the scroll position
+         and only redraws when it actually changed. */
+      window.__folioMarkPoll = setInterval(() => {
+        if (!markHandles.length || !scroller) return;
+        if (String(scroller.scrollTop) === scroller.dataset.markScroll) return;
+        scroller.dataset.markScroll = String(scroller.scrollTop);
+        paintMarks();
+      }, 120);
+    }
     applyNoteFont(noteFonts[path] || '', false);   // the note's own typeface
     applySpacing(noteSpacing[path] ?? DEFAULT_SPACING, false); // and its own line spacing
     applyNoteSize(noteSizes[path] ?? DEFAULT_SIZE, false);     // and its own base size
-    // Undo is per note: the history starts from the note as it opened.
-    undoStack = [editor.innerHTML];
+    // Undo is per note. The seed is taken on the first edit rather than on open:
+    // reading innerHTML serialises the whole note, and no switch should wait for
+    // that. beforeinput fires before the change lands, so the state captured is
+    // still the one the note opened with.
     redoStack = [];
     lastSnapshotAt = 0;
+    undoStack = [];
     // Remember what is open, so the next launch resumes here. Opening is the
     // moment worth recording: whoever edits a note had to open it first.
     invoke('set_last_note', { path }).catch(() => {});
@@ -2887,6 +3255,7 @@
         const path = row.dataset.path;
         if (collapsed.has(path)) collapsed.delete(path);
         else collapsed.add(path);
+        rememberCollapsed();
         createTarget = path;
         paintTree(lastTree);
         /* Animate the rows that just appeared, so a folder unfolds rather than
@@ -3405,6 +3774,9 @@
           noteSpacing = prefs.spacing || {};
           noteSizes = prefs.sizes || {};
           readNotes = prefs.read_notes || [];
+          // Restore the closed folders before the tree is painted.
+          collapsed.clear();
+          (prefs.collapsed_folders || []).forEach(p => collapsed.add(p));
           setTitleInline(!!prefs.title_inline, false);
           if (prefs.sidebar_width) setSidebarWidth(prefs.sidebar_width);
         }
@@ -3423,8 +3795,10 @@
             .filter(r => r.dataset.path === target)
             .forEach(r => r.classList.add('selected'));
         }
+        finishBoot();
         showStatus('Saved', vaultPath);
       } catch (err) {
+        finishBoot();
         showStatus('Could not open the notes folder', String(err));
       }
     })();
