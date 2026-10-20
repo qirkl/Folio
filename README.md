@@ -63,12 +63,10 @@ call fails the window uses a solid colour instead.
 ## Status
 
 Works on Windows: notes on disk, autosave, rename, pin, search, photo frames,
-per-note font and spacing, undo.
-Read mode is broken currently.
+per-note font and spacing, undo, etc.
 Not built as an installer yet.
 MacOS support is planned in the future.
 
 ## Credits
 
-[Jace](https://ja.mt) - Highlighter markers.
-[ios7jbpro](https://ios7.xyz) - App contributions.
+[Jace](https://ja.mt) - Highlighter markers. /// [ios7jbpro](https://ios7.xyz) - App contributions.
