@@ -1,0 +1,62 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:web="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.WebView"
+        x:Class="Folio.Desktop.MainWindow"
+        Title="Folio"
+        Width="1120" Height="720"
+        MinWidth="720" MinHeight="480"
+        CanResize="True"
+        WindowStartupLocation="CenterScreen"
+        WindowDecorations="Full"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="0"
+        Background="Transparent"
+        TransparencyLevelHint="AcrylicBlur">
+
+  <Border x:Name="RootBorder"
+          CornerRadius="8"
+          Background="Transparent"
+          ClipToBounds="True">
+    <Grid>
+      <web:NativeWebView x:Name="Web"
+                         Background="Transparent" />
+
+      <!-- The client area extends over the native resize frame, so the frame
+           cannot see the mouse at the edge. These transparent hit-test roles
+           put the standard resize affordances back, on top of the webview. -->
+      <Border Height="4"
+              VerticalAlignment="Top"
+              Background="Transparent"
+              WindowDecorationProperties.ElementRole="ResizeN" />
+      <Border Height="4"
+              VerticalAlignment="Bottom"
+              Background="Transparent"
+              WindowDecorationProperties.ElementRole="ResizeS" />
+      <Border Width="4"
+              HorizontalAlignment="Left"
+              Background="Transparent"
+              WindowDecorationProperties.ElementRole="ResizeW" />
+      <Border Width="4"
+              HorizontalAlignment="Right"
+              Background="Transparent"
+              WindowDecorationProperties.ElementRole="ResizeE" />
+
+      <Border Width="10" Height="10"
+              HorizontalAlignment="Left" VerticalAlignment="Top"
+              Background="Transparent"
+              WindowDecorationProperties.ElementRole="ResizeNW" />
+      <Border Width="10" Height="10"
+              HorizontalAlignment="Right" VerticalAlignment="Top"
+              Background="Transparent"
+              WindowDecorationProperties.ElementRole="ResizeNE" />
+      <Border Width="10" Height="10"
+              HorizontalAlignment="Left" VerticalAlignment="Bottom"
+              Background="Transparent"
+              WindowDecorationProperties.ElementRole="ResizeSW" />
+      <Border Width="10" Height="10"
+              HorizontalAlignment="Right" VerticalAlignment="Bottom"
+              Background="Transparent"
+              WindowDecorationProperties.ElementRole="ResizeSE" />
+    </Grid>
+  </Border>
+</Window>

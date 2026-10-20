@@ -4,6 +4,11 @@ node_modules/
 # electron-builder output
 dist/
 
+# .NET / Avalonia
+/avalonia/**/bin/
+/avalonia/**/obj/
+/avalonia/.vs/
+
 # OS noise
 .DS_Store
 Thumbs.db
