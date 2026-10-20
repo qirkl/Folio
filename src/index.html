@@ -9,15 +9,188 @@
 <link rel="stylesheet" href="assets/fonts.css">
 <style>
   :root{
-    --sidebar-blur:rgba(58,38,28,0.55);
-    --sidebar-tint:rgba(255,255,255,0.10);
-    --sep:rgba(255,255,255,0.14);
-    --ink:#1c1c1e;
-    --panel:#f1f1f3;
-    --hair:rgba(0,0,0,0.14);
     /* The sidebar is resizable, so its width lives in one place: the note
        panel's left edge, the caption's spacer and the drag handle all read it. */
     --sidebar-w:300px;
+
+    /* Chrome palette. Dark is the base so a script failure leaves the app dark
+       — never white ink on a light surface. `data-appearance` on <html> swaps
+       this whole set; the note paper below follows it too. */
+    --glass-overlay:
+      linear-gradient(to bottom,rgba(18,18,22,0.52),rgba(10,10,14,0.62)),
+      rgba(42,42,48,0.30);
+    --glass-solid:#2b2b2f;
+    --preview-glass:
+      linear-gradient(to bottom,rgba(14,14,16,0.26),rgba(14,14,16,0.44)),
+      rgba(34,34,38,0.45);
+    --veil:rgba(8,10,12,0.20);
+
+    --chrome-ink:rgba(255,255,255,0.94);
+    --chrome-ink-strong:#fff;
+    --chrome-ink-soft:rgba(255,255,255,0.55);
+    --chrome-ink-faint:rgba(255,255,255,0.72);
+    --chrome-shadow:0 -1px 0 rgba(0,0,0,0.35);
+    --chrome-caption-shadow:0 1px 1px rgba(0,0,0,0.35);
+
+    --hover:rgba(255,255,255,0.10);
+    --pressed:rgba(255,255,255,0.18);
+    --sep:rgba(255,255,255,0.14);
+    --chev:rgba(255,255,255,0.85);
+    --chev-shadow:drop-shadow(0 -1px 0 rgba(0,0,0,0.3));
+    --scroll-thumb:rgba(255,255,255,0.26);
+    --resizer-hover:rgba(255,255,255,0.35);
+    --resizer-active:rgba(255,255,255,0.45);
+
+    --search-ink:#fff;
+    --search-bg:rgba(0,0,0,0.26);
+    --search-bg-focus:rgba(0,0,0,0.36);
+    --search-border:rgba(0,0,0,0.32);
+    --search-shadow:0 1px 0 rgba(255,255,255,0.16), 0 1px 2px rgba(0,0,0,0.28) inset;
+    --search-placeholder:rgba(255,255,255,0.62);
+
+    --row-selected:linear-gradient(to bottom,rgba(255,255,255,0.34),rgba(255,255,255,0.16));
+    --row-selected-ring:rgba(255,255,255,0.20);
+    --row-selected-shadow:rgba(0,0,0,0.18);
+    --badge-bg:rgba(0,0,0,0.28);
+    --badge-ink:rgba(255,255,255,0.75);
+    --badge-highlight:rgba(255,255,255,0.12);
+
+    --dock-border:rgba(0,0,0,0.28);
+    --dock-bg:linear-gradient(to bottom,rgba(255,255,255,0.16),rgba(255,255,255,0.06));
+    --dock-bg-hover:linear-gradient(to bottom,rgba(255,255,255,0.26),rgba(255,255,255,0.12));
+    --dock-bg-active:linear-gradient(to bottom,rgba(255,255,255,0.34),rgba(255,255,255,0.16));
+    --dock-shadow:0 1px 0 rgba(255,255,255,0.22) inset, 0 1px 1px rgba(0,0,0,0.18);
+    --dock-ink:#fff;
+
+    /* Note paper. Dark here, white under the light block below. The toolbar
+       and the status bar are part of the same sheet, so they follow it. */
+    --paper-bg:#1e1e21;
+    --paper-hair:rgba(255,255,255,0.10);
+    --paper-hair-highlight:rgba(0,0,0,0.30);
+    --paper-ring:0 0 0 1px rgba(255,255,255,0.07), 0 3px 14px rgba(0,0,0,0.35);
+    --paper-ink:rgba(240,240,244,0.92);
+    --paper-heading:#f5f5f7;
+    --paper-title:#f2f2f4;
+    --paper-link:#82a9ff;
+    --paper-caret:#6aa9ff;
+    --paper-title-focus-bg:#141416;
+    --paper-title-focus-border:rgba(255,255,255,0.26);
+    --paper-title-ring:rgba(90,140,255,0.35);
+    --paper-selection-bg:rgba(96,150,255,0.35);
+    --paper-selection-ring:rgba(130,170,255,0.45);
+    --paper-mark-bg:#ffe873;
+    --paper-mark-ring:rgba(255,220,90,0.35);
+    --paper-mark-ink:#2b2410;
+    --paper-scroll:rgba(255,255,255,0.22);
+    --paper-toolbar:linear-gradient(to bottom,#232327,#1c1c20);
+    --paper-toolbar-inset:rgba(255,255,255,0.05);
+    --paper-btn-border:rgba(255,255,255,0.12);
+    --paper-btn-bg:linear-gradient(to bottom,#2c2c31,#242428);
+    --paper-btn-bg-hover:linear-gradient(to bottom,#35353b,#2a2a2f);
+    --paper-btn-bg-active:linear-gradient(to bottom,#202024,#28282d);
+    --paper-btn-inset:rgba(255,255,255,0.06);
+    --paper-btn-shadow:rgba(0,0,0,0.28);
+    --paper-btn-press-shadow:rgba(0,0,0,0.35);
+    --paper-btn-ink:#e6e6ea;
+    --paper-seg-border:rgba(255,255,255,0.14);
+    --paper-seg-divider:rgba(255,255,255,0.10);
+    --paper-swatch-border:rgba(255,255,255,0.20);
+    --paper-foot-ink:#9a9aa2;
+    --paper-foot-bg:linear-gradient(to bottom,rgba(32,32,36,0.92),rgba(23,23,27,0.96));
+    --paper-foot-shadow:transparent;
+    --paper-resize-1:#6a6a72;
+    --paper-resize-2:#4e4e56;
+    --note-mark-filter:invert(1);
+  }
+
+  /* Light chrome: dark ink on a frosted, light surface. The tint is opaque
+     enough that the wallpaper behind the acrylic can never produce white ink
+     on white glass, which is what made the app unreadable under Windows'
+     light mode. */
+  html[data-appearance="light"]{
+    --glass-overlay:
+      linear-gradient(to bottom,rgba(255,255,255,0.46),rgba(255,255,255,0.30)),
+      rgba(244,244,247,0.52);
+    --glass-solid:#e9e9ed;
+    --preview-glass:
+      linear-gradient(to bottom,rgba(255,255,255,0.52),rgba(255,255,255,0.36)),
+      rgba(250,250,252,0.40);
+    --veil:rgba(255,255,255,0.35);
+
+    --chrome-ink:rgba(28,28,32,0.92);
+    --chrome-ink-strong:#1b1b1f;
+    --chrome-ink-soft:rgba(28,28,32,0.55);
+    --chrome-ink-faint:rgba(28,28,32,0.66);
+    --chrome-shadow:0 1px 0 rgba(255,255,255,0.65);
+    --chrome-caption-shadow:0 1px 1px rgba(255,255,255,0.55);
+
+    --hover:rgba(0,0,0,0.065);
+    --pressed:rgba(0,0,0,0.11);
+    --sep:rgba(0,0,0,0.13);
+    --chev:rgba(30,30,36,0.62);
+    --chev-shadow:drop-shadow(0 1px 0 rgba(255,255,255,0.6));
+    --scroll-thumb:rgba(0,0,0,0.24);
+    --resizer-hover:rgba(0,0,0,0.26);
+    --resizer-active:rgba(0,0,0,0.36);
+
+    --search-ink:#1c1c20;
+    --search-bg:rgba(255,255,255,0.60);
+    --search-bg-focus:rgba(255,255,255,0.84);
+    --search-border:rgba(0,0,0,0.18);
+    --search-shadow:0 1px 0 rgba(255,255,255,0.90) inset, 0 1px 2px rgba(0,0,0,0.10) inset;
+    --search-placeholder:rgba(0,0,0,0.45);
+
+    --row-selected:linear-gradient(to bottom,rgba(0,0,0,0.12),rgba(0,0,0,0.05));
+    --row-selected-ring:rgba(0,0,0,0.10);
+    --row-selected-shadow:rgba(0,0,0,0.10);
+    --badge-bg:rgba(0,0,0,0.08);
+    --badge-ink:rgba(0,0,0,0.58);
+    --badge-highlight:rgba(255,255,255,0.60);
+
+    --dock-border:rgba(0,0,0,0.20);
+    --dock-bg:linear-gradient(to bottom,rgba(255,255,255,0.92),rgba(255,255,255,0.62));
+    --dock-bg-hover:linear-gradient(to bottom,#fff,rgba(255,255,255,0.82));
+    --dock-bg-active:linear-gradient(to bottom,rgba(0,0,0,0.05),rgba(255,255,255,0.40));
+    --dock-shadow:0 1px 0 rgba(255,255,255,0.95) inset, 0 1px 1px rgba(0,0,0,0.12);
+    --dock-ink:#3a3a3e;
+
+    --paper-bg:#fff;
+    --paper-hair:rgba(0,0,0,0.14);
+    --paper-hair-highlight:rgba(255,255,255,0.90);
+    --paper-ring:0 0 0 1px rgba(0,0,0,0.07), 0 2px 8px rgba(0,0,0,0.10);
+    --paper-ink:#1b1b1d;
+    --paper-heading:#111;
+    --paper-title:#111;
+    --paper-link:#1a56db;
+    --paper-caret:#2b6cf6;
+    --paper-title-focus-bg:#fff;
+    --paper-title-focus-border:#b9b9bd;
+    --paper-title-ring:rgba(80,140,255,0.25);
+    --paper-selection-bg:rgba(96,150,255,0.30);
+    --paper-selection-ring:rgba(70,120,240,0.35);
+    --paper-mark-bg:#fff2a8;
+    --paper-mark-ring:rgba(200,170,40,0.35);
+    --paper-mark-ink:#1b1b1d;
+    --paper-scroll:rgba(0,0,0,0.26);
+    --paper-toolbar:linear-gradient(to bottom,#fdfdfd,#ececee);
+    --paper-toolbar-inset:rgba(255,255,255,0.95);
+    --paper-btn-border:rgba(0,0,0,0.16);
+    --paper-btn-bg:linear-gradient(to bottom,#fff,#efeff1);
+    --paper-btn-bg-hover:linear-gradient(to bottom,#fff,#e4e4e8);
+    --paper-btn-bg-active:linear-gradient(to bottom,#dcdce0,#ececee);
+    --paper-btn-inset:rgba(255,255,255,0.90);
+    --paper-btn-shadow:rgba(0,0,0,0.10);
+    --paper-btn-press-shadow:rgba(0,0,0,0.22);
+    --paper-btn-ink:#333;
+    --paper-seg-border:rgba(0,0,0,0.18);
+    --paper-seg-divider:rgba(0,0,0,0.14);
+    --paper-swatch-border:rgba(0,0,0,0.24);
+    --paper-foot-ink:#6b6b70;
+    --paper-foot-bg:linear-gradient(to bottom,rgba(255,255,255,0.75),rgba(232,232,236,0.90));
+    --paper-foot-shadow:rgba(255,255,255,0.90);
+    --paper-resize-1:#9a9aa0;
+    --paper-resize-2:#b6b6bc;
+    --note-mark-filter:none;
   }
 
   *{box-sizing:border-box}
@@ -41,11 +214,10 @@
     position:relative;
     width:100vw;height:100vh;   /* the app fills its own window */
     display:flex;
-    background:
-      linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.13)),
-      rgba(96,98,106,0.10);
+    background:var(--glass-overlay);
     /* No frame, no corners, no backdrop-filter: the OS supplies the material,
-       and a CSS blur stacked on it is what made dragging crawl. */
+       and a CSS blur stacked on it is what made dragging crawl. The tint above
+       is what guarantees contrast over whatever wallpaper sits behind it. */
     overflow:hidden;
   }
 
@@ -57,7 +229,7 @@
     background-color:rgba(8,10,12,0);
     transition:background-color .13s ease-out;
   }
-  html.material-moving .veil{background-color:rgba(8,10,12,0.20)}
+  html.material-moving .veil{background-color:var(--veil)}
 
   /* ------------------------------------- Windows caption (the title bar) */
   /* No colour of its own: the bar is part of the window material, so it shows
@@ -81,8 +253,8 @@
      otherwise. Temporary: swap for a real title or menu later. */
   .app-name{
     font-size:12.5px;font-weight:700;letter-spacing:.04em;
-    color:rgba(255,255,255,0.72);
-    text-shadow:0 1px 1px rgba(0,0,0,0.35);
+    color:var(--chrome-ink-faint);
+    text-shadow:var(--chrome-caption-shadow);
     white-space:nowrap;
     transition:opacity .18s ease;
   }
@@ -123,10 +295,10 @@
     content:"";position:absolute;inset:0 auto 0 3px;width:1px;
     background:transparent;
   }
-  .sidebar-resizer:hover::after{background:rgba(255,255,255,0.35)}
+  .sidebar-resizer:hover::after{background:var(--resizer-hover)}
   body.sidebar-collapsed .sidebar-resizer{display:none}
   body.resizing{cursor:col-resize;user-select:none}
-  body.resizing .sidebar-resizer::after{background:rgba(255,255,255,0.45)}
+  body.resizing .sidebar-resizer::after{background:var(--resizer-active)}
 
   .collapse{
     width:30px;margin:0;padding:0;border:0;border-radius:0;
@@ -134,8 +306,8 @@
     background:transparent;cursor:default;
   }
   .collapse img{display:block;width:9px;transition:transform .18s ease}
-  .collapse:hover{background:rgba(255,255,255,0.10)}
-  .collapse:active{background:rgba(255,255,255,0.18)}
+  .collapse:hover{background:var(--hover)}
+  .collapse:active{background:var(--pressed)}
   body.sidebar-collapsed .collapse img{transform:rotate(180deg)}
 
   .cap-btns{display:flex}
@@ -153,15 +325,21 @@
   .cap-btn img.max,
   .cap-btn img.restore,
   .cap-btn img.close{width:14px}
-  .cap-btn:hover{background:rgba(255,255,255,0.10)}
+  .cap-btn:hover{background:var(--hover)}
 
   /* Frameless window dragging. Tauri owns data-tauri-drag-region; Electron needs
      the CSS property, and ignores it when it is not applicable. */
   .drag{-webkit-app-region:drag}
   .cap-btn{-webkit-app-region:no-drag}
-  .cap-btn:active{background:rgba(255,255,255,0.18)}
+  .cap-btn:active{background:var(--pressed)}
   .cap-btn.close:hover{background:#c42b1c}
   .cap-btn.close:active{background:#a51d10}
+  /* The caption glyphs are white artwork. A light bar needs them dark; the
+     close button keeps white because hovering it paints a red field. */
+  html[data-appearance="light"] .cap-btn img,
+  html[data-appearance="light"] .collapse img{filter:invert(1)}
+  html[data-appearance="light"] .cap-btn.close:hover img,
+  html[data-appearance="light"] .cap-btn.close:active img{filter:none}
   .cap-btn .restore{display:none}
   body.maximized .cap-btn .max{display:none}
   body.maximized .cap-btn .restore{display:block}
@@ -177,7 +355,7 @@
     position:relative;
     display:flex;flex-direction:column;
     padding:50px 12px 12px;      /* 38px caption strip + a 12px gutter */
-    color:#fff;
+    color:var(--chrome-ink-strong);
     /* This block paints nothing at all. The window is a single acrylic
        material that wraps right around it, so anything drawn here — a tint, a
        divider, a texture — would read as a second panel on top of the glass. */
@@ -192,26 +370,27 @@
     width:100%;height:26px;
     padding:0 10px 0 26px;
     font:12px/26px inherit;
-    color:#fff;
+    color:var(--search-ink);
     border-radius:13px;
-    border:1px solid rgba(0,0,0,0.32);
-    background:rgba(0,0,0,0.26);
-    box-shadow:0 1px 0 rgba(255,255,255,0.16), 0 1px 2px rgba(0,0,0,0.28) inset;
+    border:1px solid var(--search-border);
+    background:var(--search-bg);
+    box-shadow:var(--search-shadow);
     outline:none;
   }
-  .search input::placeholder{color:rgba(255,255,255,0.62)}
-  .search input:focus{background:rgba(0,0,0,0.36)}
+  .search input::placeholder{color:var(--search-placeholder)}
+  .search input:focus{background:var(--search-bg-focus)}
   /* centre the magnifier on the text line, not on a guessed pixel offset */
   .search svg{
     position:absolute;left:9px;top:50%;
     transform:translateY(-50%);
     opacity:.85;pointer-events:none;
+    color:var(--chrome-ink);
   }
 
   .scroll{flex:1;overflow-y:auto;overflow-x:hidden;margin:0 -4px;padding:0 4px}
   .scroll::-webkit-scrollbar{width:9px}
   .scroll::-webkit-scrollbar-thumb{
-    background:rgba(255,255,255,0.26);border-radius:6px;
+    background:var(--scroll-thumb);border-radius:6px;
     border:2px solid transparent;background-clip:content-box;
   }
   .scroll::-webkit-scrollbar-track{background:transparent}
@@ -220,8 +399,8 @@
     display:flex;align-items:center;gap:6px;
     margin:12px 0 6px;
     font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-    color:rgba(255,255,255,0.55);
-    text-shadow:0 -1px 0 rgba(0,0,0,0.35);
+    color:var(--chrome-ink-soft);
+    text-shadow:var(--chrome-shadow);
   }
   .section::after{content:"";flex:1;height:1px;background:var(--sep)}
 
@@ -230,25 +409,25 @@
     height:30px;padding:0 8px 0 3px;
     border-radius:5px;
     font-size:14.5px;
-    color:rgba(255,255,255,0.94);
-    text-shadow:0 -1px 0 rgba(0,0,0,0.35);
+    color:var(--chrome-ink);
+    text-shadow:var(--chrome-shadow);
     cursor:default;user-select:none;
     white-space:nowrap;
   }
-  .row:hover{background:rgba(255,255,255,0.10)}
+  .row:hover{background:var(--hover)}
   .row.selected{
-    background:linear-gradient(to bottom,rgba(255,255,255,0.34),rgba(255,255,255,0.16));
-    box-shadow:0 0 0 1px rgba(255,255,255,0.20) inset, 0 1px 1px rgba(0,0,0,0.18);
+    background:var(--row-selected);
+    box-shadow:0 0 0 1px var(--row-selected-ring) inset, 0 1px 1px var(--row-selected-shadow);
   }
   .row .chev{
     width:15px;flex:0 0 15px;height:12px;position:relative;opacity:.9;
   }
   .row .chev::before{
     content:"";position:absolute;left:3px;top:3px;
-    border-left:5px solid rgba(255,255,255,0.85);
+    border-left:5px solid var(--chev);
     border-top:4px solid transparent;border-bottom:4px solid transparent;
     transition:transform .12s ease;
-    filter:drop-shadow(0 -1px 0 rgba(0,0,0,0.3));
+    filter:var(--chev-shadow);
   }
   .row.open .chev::before{transform:rotate(90deg)}
   .row .chev::before{transform-origin:center center}
@@ -260,8 +439,8 @@
   .row .badge{
     margin-left:auto;font-size:9.5px;letter-spacing:.04em;
     padding:1px 5px;border-radius:8px;
-    background:rgba(0,0,0,0.28);color:rgba(255,255,255,0.75);
-    box-shadow:0 1px 0 rgba(255,255,255,0.12);
+    background:var(--badge-bg);color:var(--badge-ink);
+    box-shadow:0 1px 0 var(--badge-highlight);
   }
   .child{padding-left:22px}
 
@@ -275,17 +454,16 @@
     width:34px;height:34px;flex:0 0 34px;
     display:flex;align-items:center;justify-content:center;
     padding:0;overflow:hidden;
-    border:1px solid rgba(0,0,0,0.28);
+    border:1px solid var(--dock-border);
     border-radius:5px;
-    /* kept dark enough that a white glyph reads on it */
-    background:linear-gradient(to bottom,rgba(255,255,255,0.16),rgba(255,255,255,0.06));
-    box-shadow:0 1px 0 rgba(255,255,255,0.22) inset, 0 1px 1px rgba(0,0,0,0.18);
-    color:#fff;cursor:default;
+    background:var(--dock-bg);
+    box-shadow:var(--dock-shadow);
+    color:var(--dock-ink);cursor:default;
   }
-  .dock-btn:hover{background:linear-gradient(to bottom,rgba(255,255,255,0.26),rgba(255,255,255,0.12))}
-  .dock-btn.active{background:linear-gradient(to bottom,rgba(255,255,255,0.34),rgba(255,255,255,0.16))}
+  .dock-btn:hover{background:var(--dock-bg-hover)}
+  .dock-btn.active{background:var(--dock-bg-active)}
   /* the profile picture: decoration only, no function yet */
-  .dock-btn.avatar{border-color:rgba(0,0,0,0.35);padding:0}
+  .dock-btn.avatar{border-color:var(--dock-border);padding:0}
   .dock-btn.avatar svg{width:100%;height:100%;display:block}
   .dock-icon{width:18px;height:18px;display:block}
   .create-btn{
@@ -311,7 +489,10 @@
   }
   .create-menu{width:246px}
   .popover[hidden],.create-menu[hidden]{display:none}
-  .settings{width:264px;padding:12px}
+  .settings{
+    width:264px;padding:12px;
+    max-height:calc(100vh - 16px);overflow-y:auto;
+  }
   .set-label{
     font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
     color:#8a8a90;margin:10px 4px 5px;
@@ -373,7 +554,7 @@
   .pop-item:active{background:rgba(0,0,0,0.14)}
 
   /* rows rendered from the vault on disk */
-  .row .name.empty{color:rgba(255,255,255,0.55);font-style:italic}
+  .row .name.empty{color:var(--chrome-ink-soft);font-style:italic}
   .row.dim{opacity:.75}
 
   /* --------------------------------------------------------------- content */
@@ -382,7 +563,8 @@
     display:flex;flex-direction:column;
     margin:38px 12px 12px 0;     /* caption strip + a uniform 12px gutter */
     border-radius:5px;           /* matches the roundness of the sidebar buttons */
-    background:#fff;             /* the typing field *is* the panel */
+    background:var(--paper-bg);  /* the typing field *is* the panel */
+    box-shadow:var(--paper-ring);
     overflow:hidden;
   }
 
@@ -397,15 +579,16 @@
        at the bottom of its box, so it needs a hair of downward correction */
     position:relative;top:1px;
     margin-right:12px;
+    filter:var(--note-mark-filter);
   }
   .note-title{
     font-family:"EB Garamond","EB Garamond SemiBold",Garamond,Georgia,serif;
-    font-size:22px;font-weight:700;color:#111;
+    font-size:22px;font-weight:700;color:var(--paper-title);
     border:1px solid transparent;border-radius:4px;
     padding:1px 4px;margin:-1px -4px;
     outline:none;
   }
-  .note-title:focus{background:#fff;border-color:#b9b9bd;box-shadow:0 0 0 3px rgba(80,140,255,0.25)}
+  .note-title:focus{background:var(--paper-title-focus-bg);border-color:var(--paper-title-focus-border);box-shadow:0 0 0 3px var(--paper-title-ring)}
 
   /* Optional: the note's name leaves its own bar and sits in the page column,
      just above the prose, so the toolbar moves up into the bar's place. The
@@ -455,8 +638,8 @@
   .spacing-btn span{min-width:30px}     /* room for "1.75" */
   #sizeLabel{min-width:18px}            /* room for "40" */
   .spacing-btn.dragging,#sizeBtn.dragging{
-    background:linear-gradient(to bottom,#dcdce0,#ececee);
-    box-shadow:0 1px 2px rgba(0,0,0,0.22) inset;
+    background:var(--paper-btn-bg-active);
+    box-shadow:0 1px 2px var(--paper-btn-press-shadow) inset;
   }
   body.value-drag{cursor:ns-resize;user-select:none}
 
@@ -479,38 +662,38 @@
     padding:10px 24px;
     justify-content:center;      /* centre the controls in the chrome */
     border-radius:0;
-    border-top:1px solid var(--hair);
-    border-bottom:1px solid var(--hair);
-    background:linear-gradient(to bottom,#fdfdfd,#ececee);
-    box-shadow:0 1px 0 rgba(255,255,255,0.95) inset;
+    border-top:1px solid var(--paper-hair);
+    border-bottom:1px solid var(--paper-hair);
+    background:var(--paper-toolbar);
+    box-shadow:0 1px 0 var(--paper-toolbar-inset) inset;
   }
   .tb-group{display:flex;align-items:center;gap:4px}
   .tbtn{
     height:30px;min-width:32px;padding:0 8px;
     display:flex;align-items:center;justify-content:center;gap:5px;
-    border:1px solid rgba(0,0,0,0.16);
+    border:1px solid var(--paper-btn-border);
     border-radius:4px;
-    background:linear-gradient(to bottom,#fff,#efeff1);
-    box-shadow:0 1px 0 rgba(255,255,255,0.9) inset, 0 1px 1px rgba(0,0,0,0.10);
-    color:#333;font-size:13px;cursor:default;user-select:none;
+    background:var(--paper-btn-bg);
+    box-shadow:0 1px 0 var(--paper-btn-inset) inset, 0 1px 1px var(--paper-btn-shadow);
+    color:var(--paper-btn-ink);font-size:13px;cursor:default;user-select:none;
   }
-  .tbtn:hover{background:linear-gradient(to bottom,#fff,#e4e4e8)}
+  .tbtn:hover{background:var(--paper-btn-bg-hover)}
   .tbtn:active,.tbtn.on{
-    background:linear-gradient(to bottom,#dcdce0,#ececee);
-    box-shadow:0 1px 2px rgba(0,0,0,0.22) inset;
+    background:var(--paper-btn-bg-active);
+    box-shadow:0 1px 2px var(--paper-btn-press-shadow) inset;
   }
   .tbtn.disabled{opacity:.4}
   .tbtn.wide{min-width:104px;justify-content:space-between;font-size:13px}
   .tbtn .caret{
     width:0;height:0;
     border-left:3.5px solid transparent;border-right:3.5px solid transparent;
-    border-top:4px solid #555;
+    border-top:4px solid var(--paper-btn-ink);
   }
-  .tb-sep{width:1px;height:20px;background:var(--hair);margin:0 3px;
-    box-shadow:1px 0 0 rgba(255,255,255,0.9)}
+  .tb-sep{width:1px;height:20px;background:var(--paper-hair);margin:0 3px;
+    box-shadow:1px 0 0 var(--paper-hair-highlight)}
   .swatch{
     width:32px;height:30px;border-radius:4px;
-    border:1px solid rgba(0,0,0,0.24);
+    border:1px solid var(--paper-swatch-border);
     background:#3a3a3c;
     box-shadow:0 1px 0 rgba(255,255,255,0.4) inset, 0 1px 1px rgba(0,0,0,0.15);
   }
@@ -519,15 +702,15 @@
   /* joined segmented control, Mac style */
   .seg{
     display:flex;align-items:stretch;
-    border:1px solid rgba(0,0,0,0.18);
+    border:1px solid var(--paper-seg-border);
     border-radius:4px;
-    box-shadow:0 1px 1px rgba(0,0,0,0.10);
+    box-shadow:0 1px 1px var(--paper-btn-shadow);
     overflow:hidden;
   }
   .seg .tbtn{
     min-width:34px;padding:0 8px;
-    border:0;border-left:1px solid rgba(0,0,0,0.14);border-radius:0;
-    box-shadow:0 1px 0 rgba(255,255,255,0.85) inset;
+    border:0;border-left:1px solid var(--paper-seg-divider);border-radius:0;
+    box-shadow:0 1px 0 var(--paper-btn-inset) inset;
   }
   .seg .tbtn:first-child{border-left:0}
   .glyph{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:13px;line-height:1}
@@ -536,7 +719,7 @@
   .glyph.u{text-decoration:underline}
   .glyph.s{text-decoration:line-through}
 
-  /* ------------------------------------------------- the white typing field */
+  /* ----------------------------------------------------- the typing field */
   .editor-wrap{
     flex:1;min-height:0;
     padding:0;
@@ -544,11 +727,11 @@
        column as the prose and scroll away with it. */
     overflow-y:auto;
     scrollbar-gutter:stable both-edges;
-    background:#fff;
+    background:var(--paper-bg);
   }
   .editor-wrap::-webkit-scrollbar{width:11px}
   .editor-wrap::-webkit-scrollbar-thumb{
-    background:rgba(0,0,0,0.26);border-radius:6px;
+    background:var(--paper-scroll);border-radius:6px;
     border:3px solid transparent;background-clip:content-box;
   }
   .editor{
@@ -556,14 +739,14 @@
     min-height:100%;
     padding:24px;
     overflow:visible;
-    background:#fff;
+    background:var(--paper-bg);
     border:0;
     border-radius:0;
     box-shadow:none;             /* fills the panel instead of floating in it */
     font-family:Inter,"Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif;
-    font-size:16px;line-height:var(--note-spacing,1.6);color:#1b1b1d;
+    font-size:16px;line-height:var(--note-spacing,1.6);color:var(--paper-ink);
     outline:none;
-    caret-color:#2b6cf6;
+    caret-color:var(--paper-caret);
   }
   .editor p{margin:0 0 calc(0.42em * var(--note-spacing, 1.6));min-height:1.5em}
 
@@ -578,7 +761,7 @@
   /* Headlines are set in EB Garamond, like a printed page. */
   .editor h1,.editor h2,.editor h3,.editor h4,.editor h5,.editor h6{
     font-family:"EB Garamond","EB Garamond SemiBold",Garamond,Georgia,serif;
-    font-weight:600;color:#111;
+    font-weight:600;color:var(--paper-heading);
     margin:26px 0 10px;line-height:1.25;
   }
   .editor h1{font-size:32px}
@@ -596,14 +779,15 @@
     margin-left:auto;
     margin-right:auto;
   }
-  .editor a{color:#1a56db;text-decoration:underline}
+  .editor a{color:var(--paper-link);text-decoration:underline}
   .editor .sel{
-    background:rgba(96,150,255,0.30);
-    box-shadow:0 0 0 1px rgba(70,120,240,0.35);
+    background:var(--paper-selection-bg);
+    box-shadow:0 0 0 1px var(--paper-selection-ring);
     border-radius:2px;
   }
   .editor .mark{
-    background:#fff2a8;box-shadow:0 0 0 1px rgba(200,170,40,0.35);border-radius:2px;
+    background:var(--paper-mark-bg);color:var(--paper-mark-ink);
+    box-shadow:0 0 0 1px var(--paper-mark-ring);border-radius:2px;
   }
 
   .photos{position:relative;min-height:250px;margin:12px 0 18px}
@@ -695,23 +879,23 @@
   .foot{
     display:flex;align-items:center;justify-content:space-between;
     padding:6px 26px 7px;
-    font-size:12.5px;color:#6b6b70;
-    border-top:1px solid var(--hair);
-    background:linear-gradient(to bottom,rgba(255,255,255,0.75),rgba(232,232,236,0.9));
-    text-shadow:0 1px 0 rgba(255,255,255,0.9);
+    font-size:12.5px;color:var(--paper-foot-ink);
+    border-top:1px solid var(--paper-hair);
+    background:var(--paper-foot-bg);
+    text-shadow:0 1px 0 var(--paper-foot-shadow);
   }
   .foot .resize{
     width:11px;height:11px;
     background:
-      linear-gradient(135deg,transparent 45%,#9a9aa0 45%,#9a9aa0 55%,transparent 55%),
-      linear-gradient(135deg,transparent 70%,#b6b6bc 70%,#b6b6bc 80%,transparent 80%);
+      linear-gradient(135deg,transparent 45%,var(--paper-resize-1) 45%,var(--paper-resize-1) 55%,transparent 55%),
+      linear-gradient(135deg,transparent 70%,var(--paper-resize-2) 70%,var(--paper-resize-2) 80%,transparent 80%);
     margin-left:6px;
   }
 
   /* -------------------------------------------------------------- themes */
-  /* Neo is the default: a translucent material with the desktop behind it.
-     Classic clears the material and paints the window a solid dark grey. */
-  html.theme-classic .window{background:#2b2b2f}
+  /* Neo is the default material: translucent glass with the desktop behind
+     it. Classic clears the OS material and paints the window solid. */
+  html.theme-classic .window{background:var(--glass-solid)}
   html.theme-classic .veil{display:none}       /* nothing to crossfade */
 
   /* feedback while a file is dragged over the window */
@@ -731,9 +915,7 @@
   html.preview .window{
     flex:none;                  /* don't let flex shrink the mock window */
     width:1080px;height:690px;
-    background:
-      linear-gradient(to bottom,rgba(14,14,16,0.26),rgba(14,14,16,0.44)),
-      rgba(34,34,38,0.45);
+    background:var(--preview-glass);
     box-shadow:0 40px 90px rgba(0,0,0,0.45), 0 0 0 1px rgba(0,0,0,0.30);
     -webkit-backdrop-filter:blur(40px) saturate(160%);
             backdrop-filter:blur(40px) saturate(160%);
@@ -742,8 +924,28 @@
 <script>
   /* The desktop app is the default. Only a browser gets the mock desktop and
      window frame — decided before first paint and independent of the app
-     script, so a JS failure can never make the app look like a web page. */
-  if (!window.__TAURI__) document.documentElement.classList.add('preview');
+     script, so a JS failure can never make the app look like a web page.
+
+     The appearance is restored here too. The settings file arrives later over
+     the native bridge, and without this a light-theme launch would flash dark
+     chrome first. localStorage only carries the resolved look; the preference
+     itself still lives in settings.json. */
+  (function () {
+    var doc = document.documentElement;
+    if (!window.__TAURI__) doc.classList.add('preview');
+
+    function read(key, fallback) {
+      try { return localStorage.getItem(key) || fallback; } catch (e) { return fallback; }
+    }
+
+    var pref = read('folio.appearance', 'system');
+    if (pref !== 'light' && pref !== 'dark' && pref !== 'system') pref = 'system';
+    var system = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark' : 'light';
+    doc.dataset.appearance = pref === 'system' ? system : pref;
+    doc.dataset.appearancePref = pref;
+    doc.classList.toggle('theme-classic', read('folio.material', 'neo') === 'classic');
+  })();
 </script>
 </head>
 <body>
@@ -778,8 +980,8 @@
 
     <div class="search">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-        <circle cx="5" cy="5" r="3.4" stroke="#fff" stroke-width="1.3" opacity=".9"/>
-        <path d="M7.6 7.6 L10.4 10.4" stroke="#fff" stroke-width="1.3" opacity=".9"/>
+        <circle cx="5" cy="5" r="3.4" stroke="currentColor" stroke-width="1.3" opacity=".9"/>
+        <path d="M7.6 7.6 L10.4 10.4" stroke="currentColor" stroke-width="1.3" opacity=".9"/>
       </svg>
       <input type="text" placeholder="Search">
     </div>
@@ -871,11 +1073,22 @@
 
     <div class="popover settings" id="prefs" hidden>
       <div class="set-label">Appearance</div>
+      <div class="set-choice" data-appearance="light" aria-pressed="false">
+        <span class="tick"></span> Light <span class="hint">light glass</span>
+      </div>
+      <div class="set-choice" data-appearance="dark" aria-pressed="false">
+        <span class="tick"></span> Dark <span class="hint">dark glass</span>
+      </div>
+      <div class="set-choice" data-appearance="system" aria-pressed="true">
+        <span class="tick"></span> System <span class="hint">follow system</span>
+      </div>
+
+      <div class="set-label">Window material</div>
       <div class="set-choice" data-theme="neo" aria-pressed="true">
         <span class="tick"></span> Neo <span class="hint">acrylic glass</span>
       </div>
       <div class="set-choice" data-theme="classic" aria-pressed="false">
-        <span class="tick"></span> Classic <span class="hint">solid dark</span>
+        <span class="tick"></span> Classic <span class="hint">solid</span>
       </div>
 
       <div class="set-label">Note name</div>
@@ -917,7 +1130,7 @@
         <div class="tbtn spacing-btn" id="spacingBtn" title="Drag up or down to change line spacing">
           <svg width="9" height="12" viewBox="0 0 9 12" aria-hidden="true">
             <path d="M4.5 1v10M4.5 1 1.7 3.8M4.5 1l2.8 2.8M4.5 11l-2.8-2.8M4.5 11l2.8-2.8"
-                  fill="none" stroke="#555" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+                  fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <span id="spacingValue">1.6</span>
         </div>
@@ -933,23 +1146,23 @@
       </div>
       <div class="tb-sep"></div>
       <div class="seg align">
-        <div class="tbtn" data-cmd="justifyLeft"><svg width="13" height="11" viewBox="0 0 13 11"><g fill="#444"><rect width="13" height="1.5" y="0"/><rect width="9" height="1.5" y="3.2"/><rect width="13" height="1.5" y="6.4"/><rect width="7" height="1.5" y="9.6"/></g></svg></div>
-        <div class="tbtn" data-cmd="justifyCenter"><svg width="13" height="11" viewBox="0 0 13 11"><g fill="#444"><rect width="13" height="1.5" y="0"/><rect x="2" width="9" height="1.5" y="3.2"/><rect width="13" height="1.5" y="6.4"/><rect x="3" width="7" height="1.5" y="9.6"/></g></svg></div>
-        <div class="tbtn" data-cmd="justifyRight"><svg width="13" height="11" viewBox="0 0 13 11"><g fill="#444"><rect width="13" height="1.5" y="0"/><rect x="4" width="9" height="1.5" y="3.2"/><rect width="13" height="1.5" y="6.4"/><rect x="6" width="7" height="1.5" y="9.6"/></g></svg></div>
-        <div class="tbtn" data-cmd="justifyFull"><svg width="13" height="11" viewBox="0 0 13 11"><g fill="#444"><rect width="13" height="1.5" y="0"/><rect width="13" height="1.5" y="3.2"/><rect width="13" height="1.5" y="6.4"/><rect width="13" height="1.5" y="9.6"/></g></svg></div>
+        <div class="tbtn" data-cmd="justifyLeft"><svg width="13" height="11" viewBox="0 0 13 11"><g fill="currentColor"><rect width="13" height="1.5" y="0"/><rect width="9" height="1.5" y="3.2"/><rect width="13" height="1.5" y="6.4"/><rect width="7" height="1.5" y="9.6"/></g></svg></div>
+        <div class="tbtn" data-cmd="justifyCenter"><svg width="13" height="11" viewBox="0 0 13 11"><g fill="currentColor"><rect width="13" height="1.5" y="0"/><rect x="2" width="9" height="1.5" y="3.2"/><rect width="13" height="1.5" y="6.4"/><rect x="3" width="7" height="1.5" y="9.6"/></g></svg></div>
+        <div class="tbtn" data-cmd="justifyRight"><svg width="13" height="11" viewBox="0 0 13 11"><g fill="currentColor"><rect width="13" height="1.5" y="0"/><rect x="4" width="9" height="1.5" y="3.2"/><rect width="13" height="1.5" y="6.4"/><rect x="6" width="7" height="1.5" y="9.6"/></g></svg></div>
+        <div class="tbtn" data-cmd="justifyFull"><svg width="13" height="11" viewBox="0 0 13 11"><g fill="currentColor"><rect width="13" height="1.5" y="0"/><rect width="13" height="1.5" y="3.2"/><rect width="13" height="1.5" y="6.4"/><rect width="13" height="1.5" y="9.6"/></g></svg></div>
       </div>
       <div class="tb-sep"></div>
       <div class="tb-group">
         <div class="tbtn" id="insertImage" title="Insert image">
-          <svg width="14" height="12" viewBox="0 0 14 12"><rect x=".5" y=".5" width="13" height="11" rx="1.5" fill="none" stroke="#444"/><circle cx="4.4" cy="4" r="1.2" fill="#444"/><path d="M2 10 L5.6 6.2 L8.4 8.6 L10.2 7 L12.5 9.4 L12.5 10 Z" fill="#444"/></svg>
+          <svg width="14" height="12" viewBox="0 0 14 12"><rect x=".5" y=".5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor"/><circle cx="4.4" cy="4" r="1.2" fill="currentColor"/><path d="M2 10 L5.6 6.2 L8.4 8.6 L10.2 7 L12.5 9.4 L12.5 10 Z" fill="currentColor"/></svg>
         </div>
       </div>
       <div class="tb-sep"></div>
       <div class="tb-group">
         <div class="tbtn" id="readBtn" title="Read the note — lock it and its pictures">
           <svg width="15" height="11" viewBox="0 0 15 11" fill="none" aria-hidden="true">
-            <path d="M1 5.5C2.6 2.7 4.9 1.2 7.5 1.2s4.9 1.5 6.5 4.3c-1.6 2.8-3.9 4.3-6.5 4.3S2.6 8.3 1 5.5Z" stroke="#444" stroke-width="1.2"/>
-            <circle cx="7.5" cy="5.5" r="1.9" stroke="#444" stroke-width="1.2"/>
+            <path d="M1 5.5C2.6 2.7 4.9 1.2 7.5 1.2s4.9 1.5 6.5 4.3c-1.6 2.8-3.9 4.3-6.5 4.3S2.6 8.3 1 5.5Z" stroke="currentColor" stroke-width="1.2"/>
+            <circle cx="7.5" cy="5.5" r="1.9" stroke="currentColor" stroke-width="1.2"/>
           </svg>
         </div>
       </div>
@@ -2901,18 +3114,60 @@
       });
     }
 
-    // Theme: neo keeps the material, classic clears it and goes solid.
+    // --- appearance, material -----------------------------------------------
+    /* Three preferences: light, dark, or follow the system. `data-appearance`
+       on <html> is always the *resolved* scheme, because the stylesheet only
+       needs two palettes; the preference itself lives in `data-appearance-pref`
+       and in the settings file. Dark is the base palette, so a failure to set
+       the attribute leaves the app exactly as it looked before. */
+    const rootEl = document.documentElement;
+    const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    let systemScheme = darkQuery.matches ? 'dark' : 'light';
+
+    function remember(key, value) {
+      try { localStorage.setItem(key, value); } catch (_) { /* storage disabled */ }
+    }
+
+    function paintAppearance(pref, scheme) {
+      const resolved = scheme || (pref === 'system' ? systemScheme : pref);
+      rootEl.dataset.appearance = resolved === 'light' ? 'light' : 'dark';
+      rootEl.dataset.appearancePref = pref;
+      document.querySelectorAll('.set-choice[data-appearance]').forEach(el => {
+        el.setAttribute('aria-pressed', String(el.dataset.appearance === pref));
+      });
+      // The next launch paints this before the settings file has arrived.
+      remember('folio.appearance', pref);
+      remember('folio.scheme', rootEl.dataset.appearance);
+      return rootEl.dataset.appearance;
+    }
+
+    // Material: neo keeps the OS material, classic clears it and goes solid.
     function paintTheme(theme) {
-      document.documentElement.classList.toggle('theme-classic', theme === 'classic');
+      rootEl.classList.toggle('theme-classic', theme === 'classic');
       document.querySelectorAll('.set-choice[data-theme]').forEach(el => {
         el.setAttribute('aria-pressed', String(el.dataset.theme === theme));
       });
+      remember('folio.material', theme);
     }
+
+    document.querySelectorAll('.set-choice[data-appearance]').forEach(el => {
+      el.addEventListener('click', async () => {
+        const pref = el.dataset.appearance;
+        const scheme = paintAppearance(pref);
+        if (!invoke) return;
+        try {
+          await invoke('set_appearance', { appearance: pref, scheme });
+        } catch (err) {
+          showStatus(String(err), vaultPath);
+        }
+      });
+    });
 
     document.querySelectorAll('.set-choice[data-theme]').forEach(el => {
       el.addEventListener('click', async () => {
         const theme = el.dataset.theme;
         paintTheme(theme);
+        if (!invoke) return;
         try {
           await invoke('set_theme', { theme });
         } catch (err) {
@@ -2920,6 +3175,17 @@
         }
       });
     });
+
+    /* When the OS flips, the page repaints itself and the native shell gets the
+       same news through PlatformSettings, so its own theme variant follows.
+       matchMedia is the browser path; the bridge event is the WebView path. */
+    function systemChanged(scheme) {
+      if (scheme !== 'light' && scheme !== 'dark') return;
+      systemScheme = scheme;
+      if (rootEl.dataset.appearancePref === 'system') paintAppearance('system', scheme);
+    }
+    darkQuery.addEventListener('change', e => systemChanged(e.matches ? 'dark' : 'light'));
+    if (T && T.event) T.event.listen('system-scheme', e => systemChanged(e.payload));
 
     /* The note's name can stay in its own bar above the toolbar, or move into the
        page column just above the prose. The mark travels with it. */
@@ -3107,6 +3373,11 @@
         // Settings first, so the note opens with its own typeface and theme.
         const prefs = await invoke('settings').catch(() => null);
         if (prefs) {
+          const appearance = prefs.appearance || 'system';
+          const scheme = appearance === 'system'
+            ? await invoke('system_scheme').catch(() => null)
+            : appearance;
+          paintAppearance(appearance, scheme);
           paintTheme(prefs.theme || 'neo');
           noteFonts = prefs.fonts || {};
           noteSpacing = prefs.spacing || {};
