@@ -1,7 +1,8 @@
+![Folio](docs/Folio Galaxy.png)
+
 # Folio
 
-A notes app for Windows that looks like an old Mac OS X app. Dark translucent
-sidebar, beveled buttons, a white page to type on. Notes are stored in plain markdown inside the local folder of your choice.
+An old school inspired notes app with a classic UI design, a small and simple alternative to Obsidian Notes.
 
 ![Folio](docs/preview.jpg)
 
