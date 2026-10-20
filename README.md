@@ -1,4 +1,4 @@
-![Folio](docs/Folio Galaxy.png)
+(docs/Folio Galaxy.png)
 
 # Folio
 
