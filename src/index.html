@@ -62,8 +62,10 @@
     --dock-shadow:0 1px 0 rgba(255,255,255,0.22) inset, 0 1px 1px rgba(0,0,0,0.18);
     --dock-ink:#fff;
 
-    /* Note paper. Dark here, white under the light block below. The toolbar
-       and the status bar are part of the same sheet, so they follow it. */
+    /* Note paper. Dark is the base; the light palette lives under
+       html[data-editor-appearance="light"], so the page can follow the app
+       theme or be pinned independently. The toolbar and the status bar are
+       part of the same sheet, so they follow it. */
     --paper-bg:#1e1e21;
     --paper-hair:rgba(255,255,255,0.10);
     --paper-hair-highlight:rgba(0,0,0,0.30);
@@ -153,7 +155,13 @@
     --dock-bg-active:linear-gradient(to bottom,rgba(0,0,0,0.05),rgba(255,255,255,0.40));
     --dock-shadow:0 1px 0 rgba(255,255,255,0.95) inset, 0 1px 1px rgba(0,0,0,0.12);
     --dock-ink:#3a3a3e;
+  }
 
+  /* The note surface has its own palette. `data-editor-appearance` is always
+     the resolved editor scheme: "synced" resolves to the app scheme, while an
+     explicit choice may disagree with the chrome (dark app / light page).
+     Dark is the base in :root, so only light needs an override. */
+  html[data-editor-appearance="light"]{
     --paper-bg:#fff;
     --paper-hair:rgba(0,0,0,0.14);
     --paper-hair-highlight:rgba(255,255,255,0.90);
@@ -929,7 +937,8 @@
      The appearance is restored here too. The settings file arrives later over
      the native bridge, and without this a light-theme launch would flash dark
      chrome first. localStorage only carries the resolved look; the preference
-     itself still lives in settings.json. */
+     itself still lives in settings.json. The editor theme is applied the same
+     way, so an explicitly light page never flashes dark. */
   (function () {
     var doc = document.documentElement;
     if (!window.__TAURI__) doc.classList.add('preview');
@@ -942,8 +951,13 @@
     if (pref !== 'light' && pref !== 'dark' && pref !== 'system') pref = 'system';
     var system = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
       ? 'dark' : 'light';
-    doc.dataset.appearance = pref === 'system' ? system : pref;
+    var scheme = pref === 'system' ? system : pref;
+    var editor = read('folio.editor-theme', 'synced');
+    if (editor !== 'synced' && editor !== 'light' && editor !== 'dark') editor = 'synced';
+    doc.dataset.appearance = scheme;
     doc.dataset.appearancePref = pref;
+    doc.dataset.editorTheme = editor;
+    doc.dataset.editorAppearance = editor === 'synced' ? scheme : editor;
     doc.classList.toggle('theme-classic', read('folio.material', 'neo') === 'classic');
   })();
 </script>
@@ -1081,6 +1095,17 @@
       </div>
       <div class="set-choice" data-appearance="system" aria-pressed="true">
         <span class="tick"></span> System <span class="hint">follow system</span>
+      </div>
+
+      <div class="set-label">Editor theme</div>
+      <div class="set-choice" data-editor-theme="synced" aria-pressed="true">
+        <span class="tick"></span> Synced <span class="hint">follows app</span>
+      </div>
+      <div class="set-choice" data-editor-theme="light" aria-pressed="false">
+        <span class="tick"></span> Light <span class="hint">always light</span>
+      </div>
+      <div class="set-choice" data-editor-theme="dark" aria-pressed="false">
+        <span class="tick"></span> Dark <span class="hint">always dark</span>
       </div>
 
       <div class="set-label">Window material</div>
@@ -3114,12 +3139,14 @@
       });
     }
 
-    // --- appearance, material -----------------------------------------------
-    /* Three preferences: light, dark, or follow the system. `data-appearance`
-       on <html> is always the *resolved* scheme, because the stylesheet only
-       needs two palettes; the preference itself lives in `data-appearance-pref`
-       and in the settings file. Dark is the base palette, so a failure to set
-       the attribute leaves the app exactly as it looked before. */
+    // --- appearance, material, editor theme ---------------------------------
+    /* Three appearance preferences: light, dark, or follow the system.
+       `data-appearance` on <html> is always the *resolved* scheme, because the
+       stylesheet only needs two palettes; the preference itself lives in
+       `data-appearance-pref` and in the settings file. Dark is the base
+       palette, so a failure to set the attribute leaves the app exactly as it
+       looked before. The editor theme is a second, independent preference:
+       synced follows `data-appearance`, or it can stay light/dark on its own. */
     const rootEl = document.documentElement;
     const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
     let systemScheme = darkQuery.matches ? 'dark' : 'light';
@@ -3138,7 +3165,25 @@
       // The next launch paints this before the settings file has arrived.
       remember('folio.appearance', pref);
       remember('folio.scheme', rootEl.dataset.appearance);
+      // A synced editor follows the chrome, including live OS changes.
+      paintEditorTheme(rootEl.dataset.editorTheme || 'synced');
       return rootEl.dataset.appearance;
+    }
+
+    /* `data-editor-theme` is the preference (synced/light/dark);
+       `data-editor-appearance` is the resolved paper scheme the stylesheet
+       reads. Synced tracks the app theme, so a dark app can still have a light
+       page and vice versa. */
+    function paintEditorTheme(pref) {
+      const choice = pref === 'light' || pref === 'dark' ? pref : 'synced';
+      const resolved = choice === 'synced' ? rootEl.dataset.appearance : choice;
+      rootEl.dataset.editorTheme = choice;
+      rootEl.dataset.editorAppearance = resolved === 'light' ? 'light' : 'dark';
+      document.querySelectorAll('.set-choice[data-editor-theme]').forEach(el => {
+        el.setAttribute('aria-pressed', String(el.dataset.editorTheme === choice));
+      });
+      remember('folio.editor-theme', choice);
+      return choice;
     }
 
     // Material: neo keeps the OS material, classic clears it and goes solid.
@@ -3157,6 +3202,18 @@
         if (!invoke) return;
         try {
           await invoke('set_appearance', { appearance: pref, scheme });
+        } catch (err) {
+          showStatus(String(err), vaultPath);
+        }
+      });
+    });
+
+    document.querySelectorAll('.set-choice[data-editor-theme]').forEach(el => {
+      el.addEventListener('click', async () => {
+        const pref = paintEditorTheme(el.dataset.editorTheme);
+        if (!invoke) return;
+        try {
+          await invoke('set_editor_theme', { theme: pref });
         } catch (err) {
           showStatus(String(err), vaultPath);
         }
@@ -3378,6 +3435,7 @@
             ? await invoke('system_scheme').catch(() => null)
             : appearance;
           paintAppearance(appearance, scheme);
+          paintEditorTheme(prefs.editor_theme || 'synced');
           paintTheme(prefs.theme || 'neo');
           noteFonts = prefs.fonts || {};
           noteSpacing = prefs.spacing || {};

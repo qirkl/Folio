@@ -83,6 +83,7 @@ public sealed class Bridge
                 _vault.SetAppearance(appearance);
                 _window.RequestedThemeVariant = VariantFor(appearance);
                 return null;
+            case "set_editor_theme": _vault.SetEditorTheme(Str(args, "theme")); return null;
             case "system_scheme": return SchemeFor();
             case "set_note_font": _vault.SetNoteFont(Str(args, "path"), Str(args, "font")); return null;
             case "set_note_spacing": _vault.SetNoteSpacing(Str(args, "path"), Float(args, "spacing")); return null;

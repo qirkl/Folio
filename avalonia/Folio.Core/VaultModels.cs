@@ -24,6 +24,7 @@ public sealed class AppSettings
 {
     public string Theme { get; set; } = "neo";
     public string Appearance { get; set; } = "system";
+    public string EditorTheme { get; set; } = "synced";
     public Dictionary<string, string> Fonts { get; set; } = new();
     public Dictionary<string, float> Spacing { get; set; } = new();
     public Dictionary<string, float> Sizes { get; set; } = new();

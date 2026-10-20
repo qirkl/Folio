@@ -16,6 +16,10 @@ public sealed class Settings
     /// (neo/classic), which is orthogonal to the colour palette. New installs
     /// follow the OS; an explicit choice is remembered.</summary>
     public string Appearance { get; set; } = "system";
+    /// <summary>Synced, light, or dark for the note surface only. Synced follows
+    /// <see cref="Appearance"/>; an explicit choice lets the page be light while
+    /// the chrome is dark, or the other way around.</summary>
+    public string EditorTheme { get; set; } = "synced";
     public Dictionary<string, string> NoteFonts { get; set; } = new();
     public Dictionary<string, float> NoteSpacing { get; set; } = new();
     public Dictionary<string, float> NoteSizes { get; set; } = new();
