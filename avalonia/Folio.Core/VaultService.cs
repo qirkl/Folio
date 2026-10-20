@@ -235,6 +235,7 @@ public sealed class VaultService
         {
             Theme = settings.Theme == "classic" ? "classic" : "neo",
             Appearance = NormalizeAppearance(settings.Appearance),
+            EditorTheme = NormalizeEditorTheme(settings.EditorTheme),
             Fonts = settings.NoteFonts,
             Spacing = settings.NoteSpacing,
             Sizes = settings.NoteSizes,
@@ -318,6 +319,21 @@ public sealed class VaultService
 
     private static string NormalizeAppearance(string? appearance) =>
         appearance is "light" or "dark" or "system" ? appearance : "system";
+
+    /// <summary>
+    /// Synced, light, or dark for the note surface only. The shell does not
+    /// apply this to the native chrome; the page resolves whether it follows
+    /// <see cref="Settings.Appearance"/> or stays pinned.
+    /// </summary>
+    public void SetEditorTheme(string editorTheme)
+    {
+        var settings = LoadSettings();
+        settings.EditorTheme = NormalizeEditorTheme(editorTheme);
+        SaveSettings(settings);
+    }
+
+    private static string NormalizeEditorTheme(string? editorTheme) =>
+        editorTheme is "light" or "dark" ? editorTheme : "synced";
 
     public void SetAppIcon(string name)
     {
