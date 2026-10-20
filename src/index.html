@@ -325,15 +325,12 @@
     background:transparent;cursor:default;
     transition:background .1s ease;
   }
-  /* The supplied icons are drawn on ~50px artboards, so only the width is set:
-     the height follows the aspect ratio and the optical weight matches the
-     window controls they replace. */
-  .cap-btn img{display:block}
-  .cap-btn img.min{width:15px}
-  .cap-btn img.max,
-  .cap-btn img.restore,
-  .cap-btn img.close{width:14px}
+  /* Windows 11 caption artwork lives on a sharp 10x10 grid: 1px rules at their
+     native size. Let the browser scale it with the display DPI. */
+  .cap-btn img{display:block;width:10px;height:10px}
   .cap-btn:hover{background:var(--hover)}
+  /* Native caption buttons show no focus ring. */
+  .cap-btn:focus{outline:none}
 
   /* Frameless window dragging. Tauri owns data-tauri-drag-region; Electron needs
      the CSS property, and ignores it when it is not applicable. */
