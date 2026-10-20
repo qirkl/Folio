@@ -10,6 +10,7 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <RootNamespace>Folio.Desktop</RootNamespace>
     <AssemblyName>Folio</AssemblyName>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,6 +23,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Folio.Core\Folio.Core.csproj" />
+  </ItemGroup>
+
+  <!-- The window reads this at startup for its icon, and the exe wears it too. -->
+  <ItemGroup>
+    <Content Include="icon.ico" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- The existing frontend is plain files. Copy them next to the app so the

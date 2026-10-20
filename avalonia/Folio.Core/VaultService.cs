@@ -239,7 +239,7 @@ public sealed class VaultService
             Fonts = settings.NoteFonts,
             Spacing = settings.NoteSpacing,
             Sizes = settings.NoteSizes,
-            AppIcon = string.IsNullOrEmpty(settings.AppIcon) ? "galaxy" : settings.AppIcon,
+            ReadNotes = settings.ReadNotes ?? new(),
             SidebarWidth = settings.SidebarWidth == 0 ? 300u : settings.SidebarWidth,
             TitleInline = settings.TitleInline,
         };
@@ -335,10 +335,13 @@ public sealed class VaultService
     private static string NormalizeEditorTheme(string? editorTheme) =>
         editorTheme is "light" or "dark" ? editorTheme : "synced";
 
-    public void SetAppIcon(string name)
+    /// <summary>Read mode belongs to the note, not to the session.</summary>
+    public void SetNoteRead(string path, bool read)
     {
         var settings = LoadSettings();
-        settings.AppIcon = name;
+        settings.ReadNotes ??= new List<string>();
+        settings.ReadNotes.RemoveAll(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase));
+        if (read && !string.IsNullOrWhiteSpace(path)) settings.ReadNotes.Add(path);
         SaveSettings(settings);
     }
 

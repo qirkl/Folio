@@ -17,6 +17,12 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
+        // One fixed icon. Offering a choice of them never looked reliable on
+        // Windows, where the taskbar caches icons, and macOS would need its own
+        // mechanism entirely.
+        var iconFile = Path.Combine(AppContext.BaseDirectory, "icon.ico");
+        if (File.Exists(iconFile)) Icon = new WindowIcon(iconFile);
+
         _vault = new VaultService();
         _bridge = new Bridge(this, Web, _vault);
         _bridge.Attach();

@@ -32,7 +32,7 @@ written next to them at startup to bootstrap the bridge.
 - Settings: appearance (light, dark or follow the system, which is the default),
   editor theme (synced with the app by default, or pinned light/dark), window
   material (neo glass or solid classic), per-note font/size/spacing, pinned
-  notes, order, sidebar width, inline title and app icon.
+  notes, order, sidebar width and inline title.
 - Appearance is applied in two places that agree: the page swaps a light/dark
   palette for the chrome and a separate editor palette for the note paper
   (toolbar, footer and editor), and the shell brings its own theme variant

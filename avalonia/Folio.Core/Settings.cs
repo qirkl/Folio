@@ -23,7 +23,9 @@ public sealed class Settings
     public Dictionary<string, string> NoteFonts { get; set; } = new();
     public Dictionary<string, float> NoteSpacing { get; set; } = new();
     public Dictionary<string, float> NoteSizes { get; set; } = new();
-    public string AppIcon { get; set; } = "galaxy";
+    /// <summary>Notes left in read mode, by vault-relative path. It is a note's
+    /// own state rather than the app's, so switching notes leaves each as it was.</summary>
+    public List<string> ReadNotes { get; set; } = new();
     public bool TitleInline { get; set; }
     public uint SidebarWidth { get; set; } = 300;
 }

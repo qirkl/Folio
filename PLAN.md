@@ -14,7 +14,7 @@
   own bar or in the page above the text.
 - Read mode, which locks the note and the frames.
 - Undo and redo, including for menu actions.
-- Settings: theme, app icon, notes folder, sidebar width.
+- Settings: theme, editor theme, notes folder, sidebar width.
 - Tests for the markdown converter.
 
 ## To be done

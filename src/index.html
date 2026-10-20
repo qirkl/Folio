@@ -522,20 +522,6 @@
   }
   .set-choice .hint{margin-left:auto;font-size:11px;color:#8a8a90}
 
-  /* app icon variants */
-  .icon-row{display:flex;gap:8px;padding:2px 4px 2px}
-  .icon-choice{
-    width:34px;height:34px;margin:0;padding:0;
-    border:0;border-radius:8px;
-    background:none;cursor:default;
-    box-shadow:0 0 0 1px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.18);
-    overflow:hidden;
-  }
-  .icon-choice img{display:block;width:100%;height:100%}
-  .icon-choice:hover{box-shadow:0 0 0 1px rgba(0,0,0,0.35), 0 2px 5px rgba(0,0,0,0.22)}
-  .icon-choice[aria-pressed="true"]{
-    box-shadow:0 0 0 2px #2b6cf6, 0 1px 3px rgba(0,0,0,0.25);
-  }
   .menu-input{
     width:100%;height:26px;margin:2px 0 6px;
     padding:0 8px;
@@ -666,6 +652,7 @@
   /* ---------------------------------------------------------- note chrome */
   .toolbar{
     display:flex;align-items:center;gap:8px;
+    position:relative;            /* the read toggle is pinned to the right edge */
     margin:0;                    /* a band across the panel, not a floating card */
     padding:10px 24px;
     justify-content:center;      /* centre the controls in the chrome */
@@ -676,6 +663,13 @@
     box-shadow:0 1px 0 var(--paper-toolbar-inset) inset;
   }
   .tb-group{display:flex;align-items:center;gap:4px}
+
+  /* The read toggle belongs to the chrome, not to the run of editing controls:
+     it sits at the far right, level with them, and its inset matches the
+     toolbar's own vertical padding so it clears the edge by the same amount. */
+  #readBtn{
+    position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  }
   .tbtn{
     height:30px;min-width:32px;padding:0 8px;
     display:flex;align-items:center;justify-content:center;gap:5px;
@@ -1121,9 +1115,6 @@
         <span class="tick"></span> Above the text <span class="hint">in the page column</span>
       </div>
 
-      <div class="set-label">App icon</div>
-      <div class="icon-row" id="iconRow"></div>
-
       <div class="set-label">Notes folder</div>
       <div class="pop-path" id="vaultPath">…</div>
       <div class="pop-item" id="chooseFolder">Choose folder…</div>
@@ -1182,14 +1173,11 @@
           <svg width="14" height="12" viewBox="0 0 14 12"><rect x=".5" y=".5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor"/><circle cx="4.4" cy="4" r="1.2" fill="currentColor"/><path d="M2 10 L5.6 6.2 L8.4 8.6 L10.2 7 L12.5 9.4 L12.5 10 Z" fill="currentColor"/></svg>
         </div>
       </div>
-      <div class="tb-sep"></div>
-      <div class="tb-group">
-        <div class="tbtn" id="readBtn" title="Read the note — lock it and its pictures">
-          <svg width="15" height="11" viewBox="0 0 15 11" fill="none" aria-hidden="true">
-            <path d="M1 5.5C2.6 2.7 4.9 1.2 7.5 1.2s4.9 1.5 6.5 4.3c-1.6 2.8-3.9 4.3-6.5 4.3S2.6 8.3 1 5.5Z" stroke="currentColor" stroke-width="1.2"/>
-            <circle cx="7.5" cy="5.5" r="1.9" stroke="currentColor" stroke-width="1.2"/>
-          </svg>
-        </div>
+      <div class="tbtn" id="readBtn" title="Read the note - lock it and its pictures">
+        <svg width="15" height="11" viewBox="0 0 15 11" fill="none" aria-hidden="true">
+          <path d="M1 5.5C2.6 2.7 4.9 1.2 7.5 1.2s4.9 1.5 6.5 4.3c-1.6 2.8-3.9 4.3-6.5 4.3S2.6 8.3 1 5.5Z" stroke="currentColor" stroke-width="1.2"/>
+          <circle cx="7.5" cy="5.5" r="1.9" stroke="currentColor" stroke-width="1.2"/>
+        </svg>
       </div>
     </div>
 
@@ -1261,17 +1249,21 @@
   // --- read mode ------------------------------------------------------------
   /* A reading posture: the note stops accepting edits and the picture frames
      stop moving under the pointer. Text can still be selected and copied — this
-     is a lock on change, not on reading. It is per note: opening another note
-     returns to editing, so a forgotten toggle cannot leave you unable to type. */
+     is a lock on change, not on reading.
+
+     Read mode belongs to the note. It is remembered per path in settings.json,
+     so switching notes (or quitting and reopening) leaves each note exactly as
+     you left it, and only the toggle turns it off. */
   let readMode = false;
+  let readNotes = [];                     // vault-relative paths, from settings
   const readBtn = document.getElementById('readBtn');
 
-  function setReadMode(on) {
+  function setReadMode(on, persist = true) {
     readMode = !!on;
     editor.setAttribute('contenteditable', readMode ? 'false' : 'true');
     editor.classList.toggle('read-mode', readMode);
     readBtn.classList.toggle('on', readMode);
-    readBtn.title = readMode ? 'Back to editing' : 'Read the note — lock it and its pictures';
+    readBtn.title = readMode ? 'Back to editing' : 'Read the note - lock it and its pictures';
     editor.querySelectorAll('img').forEach(img => {
       img.setAttribute('draggable', readMode ? 'false' : 'true');
     });
@@ -1279,6 +1271,11 @@
       const sel = window.getSelection();
       if (sel) sel.removeAllRanges();
       savedRange = null;
+    }
+    if (persist && currentPath) {
+      readNotes = readNotes.filter(p => p.toLowerCase() !== currentPath.toLowerCase());
+      if (readMode) readNotes.push(currentPath);
+      invoke('set_note_read', { path: currentPath, read: readMode }).catch(() => {});
     }
     syncToolbarState();
   }
@@ -2831,7 +2828,9 @@
     await saveNow();                       // never lose the note we are leaving
     const raw = await invoke('read_note', { path });
     currentPath = path;
-    setReadMode(false);                    // a different note opens for editing
+    // Each note keeps its own reading state; a note opened for the first time
+    // is editable.
+    setReadMode(readNotes.some(p => p.toLowerCase() === path.toLowerCase()), false);
     createTarget = parentFolder(path);     // Create lands beside the open note
     titleEl.textContent = noteTitle(path);
     setNoteMark(path);
@@ -3265,45 +3264,10 @@
       setTitleInline(titleChoice.getAttribute('aria-pressed') !== 'true');
     });
 
-    // App icon: the window and taskbar icon can change while the app runs. The
-    // executable's own icon and the Start Menu shortcut are written at install
-    // time, so those keep the bundled one until a reinstall.
-    const APP_ICONS = ['galaxy', 'dark', 'dusk'];
-    const iconRow = document.getElementById('iconRow');
-    iconRow.innerHTML = APP_ICONS.map(name =>
-      `<button class="icon-choice" data-icon="${name}" title="${name}" aria-pressed="false">` +
-      `<img src="assets/appicons/${name}.png" alt="${name}"></button>`).join('');
-
-    function markIcon(name) {
-      iconRow.querySelectorAll('.icon-choice').forEach(el => {
-        el.setAttribute('aria-pressed', String(el.dataset.icon === name));
-      });
-    }
-
-    /* The page decodes the PNG and hands Rust raw RGBA: it already has a canvas,
-       and Rust would otherwise need an image decoder plus an extra Tauri
-       feature just to set a window icon. */
-    async function applyAppIcon(name) {
-      const img = new Image();
-      img.src = `assets/appicons/${name}.png`;
-      await img.decode();
-
-      const size = 128;
-      const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = size;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, size, size);
-      const { data } = ctx.getImageData(0, 0, size, size);
-
-      markIcon(name);
-      await invoke('set_app_icon', { name, rgba: Array.from(data), size });
-    }
-
-    iconRow.addEventListener('click', e => {
-      const el = e.target.closest('.icon-choice');
-      if (!el) return;
-      applyAppIcon(el.dataset.icon).catch(err => showStatus(String(err), vaultPath));
-    });
+    // App icon: fixed. Windows bakes the executable's icon in at build time and
+    // the taskbar keeps its cache, so switching it at runtime never looked
+    // reliable enough to offer; macOS would need a different mechanism again.
+    // The icon is set on the window by the shell (see Folio.Desktop).
 
     // Theme and note fonts are fetched at the top of the startup block below,
     // which awaits them before opening the first note.
@@ -3440,14 +3404,9 @@
           noteFonts = prefs.fonts || {};
           noteSpacing = prefs.spacing || {};
           noteSizes = prefs.sizes || {};
+          readNotes = prefs.read_notes || [];
           setTitleInline(!!prefs.title_inline, false);
           if (prefs.sidebar_width) setSidebarWidth(prefs.sidebar_width);
-          // The bundled icon *is* the galaxy variant, so wearing it needs no
-          // work — and skipping it saves pushing 64KB of pixels over IPC on
-          // every launch.
-          const icon = prefs.app_icon || 'galaxy';
-          if (icon === 'galaxy') markIcon(icon);
-          else await applyAppIcon(icon).catch(() => {});
         }
 
         let info = await refreshVault();
@@ -3549,6 +3508,52 @@
       document.addEventListener('click', function back(e) {
         if (e.target.closest('.cap-btn')) return;
         winEl.style.transform = '';
+        winEl.style.opacity = '1';
+        document.removeEventListener('click', back);
+      });
+    };
+    document.querySelector('[data-win="minimize"]').addEventListener('click', hide);
+    document.querySelector('[data-win="close"]').addEventListener('click', hide);
+  }
+</script>
+</body>
+</html>
+ch (_) {}
+    };
+
+    document.querySelector('[data-win="minimize"]').addEventListener('click', () => win.minimize());
+    document.querySelector('[data-win="close"]').addEventListener('click', () => win.close());
+    document.querySelector('[data-win="maximize"]').addEventListener('click', async () => {
+      await win.toggleMaximize();
+      syncMaximized();
+    });
+
+    try { win.onResized(syncMaximized); } catch (_) {}
+    syncMaximized();
+  } else {
+    // Browser preview: stand-ins so the Windows chrome and the layout it forces
+    // can be reviewed without a build.
+    document.querySelector('[data-win="maximize"]').addEventListener('click', () => {
+      document.body.classList.toggle('maximized');
+    });
+    const hide = () => {
+      winEl.style.transition = 'transform .18s ease, opacity .18s ease';
+      winEl.style.transform = 'scale(.94) translateY(8px)';
+      winEl.style.opacity = '0';
+      document.addEventListener('click', function back(e) {
+        if (e.target.closest('.cap-btn')) return;
+        winEl.style.transform = '';
+        winEl.style.opacity = '1';
+        document.removeEventListener('click', back);
+      });
+    };
+    document.querySelector('[data-win="minimize"]').addEventListener('click', hide);
+    document.querySelector('[data-win="close"]').addEventListener('click', hide);
+  }
+</script>
+</body>
+</html>
+      winEl.style.transform = '';
         winEl.style.opacity = '1';
         document.removeEventListener('click', back);
       });

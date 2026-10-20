@@ -28,7 +28,7 @@ public sealed class AppSettings
     public Dictionary<string, string> Fonts { get; set; } = new();
     public Dictionary<string, float> Spacing { get; set; } = new();
     public Dictionary<string, float> Sizes { get; set; } = new();
-    public string AppIcon { get; set; } = "galaxy";
+    public List<string> ReadNotes { get; set; } = new();
     public uint SidebarWidth { get; set; } = 300;
     public bool TitleInline { get; set; }
 }

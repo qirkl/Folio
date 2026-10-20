@@ -91,10 +91,7 @@ public sealed class Bridge
             case "set_sidebar_width": _vault.SetSidebarWidth(UInt(args, "width")); return null;
             case "set_title_inline": _vault.SetTitleInline(Bool(args, "inline")); return null;
             case "set_last_note": _vault.SetLastNote(Str(args, "path")); return null;
-            case "set_app_icon":
-                _vault.SetAppIcon(Str(args, "name"));
-                ApplyIcon(args);
-                return null;
+            case "set_note_read": _vault.SetNoteRead(Str(args, "path"), Bool(args, "read")); return null;
             case "import_files": return _vault.ImportFiles(StringArray(args, "paths").ToList());
             case "reveal_vault": _vault.RevealVault(); return null;
             case "create_folder": _vault.CreateFolder(Str(args, "path")); return null;
