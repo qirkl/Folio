@@ -1,4 +1,3 @@
-(docs/Folio Galaxy.png)
 
 # Folio
 
