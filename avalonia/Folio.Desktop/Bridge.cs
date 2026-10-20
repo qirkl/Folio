@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Platform.Storage;
+using Avalonia.Styling;
 using Folio.Core;
 
 namespace Folio.Desktop;
@@ -77,6 +78,12 @@ public sealed class Bridge
             case "set_order": _vault.SetOrder(StringArray(args, "paths").ToList()); return null;
             case "set_pinned": return _vault.SetPinned(StringArray(args, "paths").ToList());
             case "set_theme": _vault.SetTheme(Str(args, "theme")); return null;
+            case "set_appearance":
+                var appearance = Str(args, "appearance");
+                _vault.SetAppearance(appearance);
+                _window.RequestedThemeVariant = VariantFor(appearance);
+                return null;
+            case "system_scheme": return SchemeFor();
             case "set_note_font": _vault.SetNoteFont(Str(args, "path"), Str(args, "font")); return null;
             case "set_note_spacing": _vault.SetNoteSpacing(Str(args, "path"), Float(args, "spacing")); return null;
             case "set_note_size": _vault.SetNoteSize(Str(args, "path"), Float(args, "size")); return null;
@@ -278,6 +285,21 @@ public sealed class Bridge
 
     private const int WM_NCLBUTTONDOWN = 0xA1;
     private static readonly IntPtr HTCAPTION = new(2);
+
+    /// <summary>Maps the stored appearance to the theme variant the native
+    /// chrome should use. System follows the OS rather than pinning a variant.</summary>
+    internal static ThemeVariant VariantFor(string appearance) => appearance switch
+    {
+        "light" => ThemeVariant.Light,
+        "dark" => ThemeVariant.Dark,
+        _ => ThemeVariant.Default,
+    };
+
+    /// <summary>The OS scheme, independent of the app's own variant.</summary>
+    internal static string SchemeFor() =>
+        Application.Current?.PlatformSettings?.GetColorValues().ThemeVariant == PlatformThemeVariant.Dark
+            ? "dark"
+            : "light";
 
     [DllImport("user32.dll")]
     private static extern bool ReleaseCapture();

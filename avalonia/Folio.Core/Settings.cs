@@ -12,6 +12,10 @@ public sealed class Settings
     public string? LastNote { get; set; }
     public List<string> Pinned { get; set; } = new();
     public string Theme { get; set; } = "neo";
+    /// <summary>Light, dark, or system. <c>Theme</c> stays the material choice
+    /// (neo/classic), which is orthogonal to the colour palette. New installs
+    /// follow the OS; an explicit choice is remembered.</summary>
+    public string Appearance { get; set; } = "system";
     public Dictionary<string, string> NoteFonts { get; set; } = new();
     public Dictionary<string, float> NoteSpacing { get; set; } = new();
     public Dictionary<string, float> NoteSizes { get; set; } = new();

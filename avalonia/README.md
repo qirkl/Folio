@@ -29,8 +29,14 @@ written next to them at startup to bootstrap the bridge.
 
 - Vault discovery and tree (`VaultService`), note read/write, create, rename,
   delete and move, folders, import, reveal and avatar storage.
-- Settings: theme, per-note font/size/spacing, pinned notes, order, sidebar
-  width, inline title and app icon.
+- Settings: appearance (light, dark or follow the system, which is the default), window material
+  (neo glass or solid classic), per-note font/size/spacing, pinned notes, order,
+  sidebar width, inline title and app icon.
+- Appearance is applied in two places that agree: the page swaps a light/dark
+  palette for both the chrome and the note paper (toolbar, footer and editor),
+  and the shell brings its own theme variant along. Under "system" the shell
+  listens to the OS colour changes and the page repaints, so switching Windows
+  between light and dark updates the running window.
 - Native file dialogs for picking the vault, avatar, icon and imports.
 - Window controls: minimize, close, maximize/restore, caption drag and edge /
   corner resizing, including on the transparent extended client area.

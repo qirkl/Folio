@@ -1,7 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Platform;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using Folio.Core;
 
 namespace Folio.Desktop;
@@ -24,6 +26,8 @@ public partial class MainWindow : Window
             WindowChrome.Apply(this);
             UpdateChrome();
             LoadFrontend();
+            ApplySavedAppearance();
+            WatchSystemTheme();
         };
 
         PropertyChanged += (_, e) =>
@@ -50,6 +54,34 @@ public partial class MainWindow : Window
         RootBorder.CornerRadius = WindowState == WindowState.Maximized
             ? new CornerRadius(0)
             : new CornerRadius(WindowChrome.Radius);
+    }
+
+    /// <summary>Pins the native chrome to the saved light/dark/system choice.</summary>
+    private void ApplySavedAppearance()
+    {
+        RequestedThemeVariant = Bridge.VariantFor(_vault.LoadSettings().Appearance);
+    }
+
+    /// <summary>
+    /// The OS can switch light/dark while the app is open. The page gets the
+    /// news so it can repaint when the preference is System, and the native
+    /// variant is re-applied so the window frame and the page never disagree.
+    /// </summary>
+    private void WatchSystemTheme()
+    {
+        var settings = Application.Current?.PlatformSettings;
+        if (settings is null) return;
+
+        settings.ColorValuesChanged += (_, e) =>
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                ApplySavedAppearance();
+                var scheme = e.ThemeVariant == PlatformThemeVariant.Dark ? "dark" : "light";
+                var payload = System.Text.Json.JsonSerializer.Serialize(scheme);
+                _ = Web.InvokeScript($"window.__folioEmit('system-scheme', {payload});");
+            });
+        };
     }
 
     private void LoadFrontend()

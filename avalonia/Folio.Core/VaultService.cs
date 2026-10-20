@@ -234,6 +234,7 @@ public sealed class VaultService
         return new AppSettings
         {
             Theme = settings.Theme == "classic" ? "classic" : "neo",
+            Appearance = NormalizeAppearance(settings.Appearance),
             Fonts = settings.NoteFonts,
             Spacing = settings.NoteSpacing,
             Sizes = settings.NoteSizes,
@@ -303,6 +304,20 @@ public sealed class VaultService
         settings.Theme = theme == "classic" ? "classic" : "neo";
         SaveSettings(settings);
     }
+
+    /// <summary>
+    /// Light, dark, or system. System is resolved by the shell (which owns the
+    /// OS theme) for the native chrome; the page resolves it for the palette.
+    /// </summary>
+    public void SetAppearance(string appearance)
+    {
+        var settings = LoadSettings();
+        settings.Appearance = NormalizeAppearance(appearance);
+        SaveSettings(settings);
+    }
+
+    private static string NormalizeAppearance(string? appearance) =>
+        appearance is "light" or "dark" or "system" ? appearance : "system";
 
     public void SetAppIcon(string name)
     {
