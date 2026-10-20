@@ -67,3 +67,8 @@ per-note font and spacing, undo.
 Read mode is broken currently.
 Not built as an installer yet.
 MacOS support is planned in the future.
+
+## Credits
+
+[Jace](https://ja.mt) - Highlighter markers.
+[ios7jbpro](https://ios7.xyz) - App contributions.
