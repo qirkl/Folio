@@ -69,4 +69,4 @@ MacOS support is planned in the future.
 
 ## Credits
 
-[Jace](https://ja.mt) - Providing the [highlighter markers](https://highlighte.rs). /// [ios7jbpro](https://ios7.xyz) - App contributions.
+[Jace](https://ja.mt) - Providing the [Highlighters](https://highlighte.rs) & [Scritto](https://scrit.to/). /// [ios7jbpro](https://ios7.xyz) - App contributions.
