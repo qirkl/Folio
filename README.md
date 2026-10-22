@@ -1,7 +1,7 @@
 
 # Folio
 
-An old school inspired notes app with a classic UI design, a small and simple alternative to Obsidian Notes.
+Old school inspired notes app with a classic UI design, a small and simple alternative to Obsidian Notes.
 
 ![Folio](docs/preview.jpg)
 
