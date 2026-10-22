@@ -619,11 +619,16 @@
      up and down, and both keep their value in a fixed-width box. "1.7" and
      "1.71" are different widths, and the centred toolbar re-lays out around
      them — which is what made the whole chrome twitch mid-drag. */
-  .spacing-btn{min-width:62px;gap:5px;cursor:ns-resize}
+  /* .tbtn sets cursor:default further down and has the same specificity, so the
+     draggable ones have to be named more specifically than it. */
+  .tbtn.spacing-btn{min-width:62px;gap:5px;cursor:ns-resize}
   #sizeBtn{cursor:ns-resize}
   .spacing-btn scritto-text,#sizeLabel{
     display:inline-block;
-    text-align:center;
+    /* Start-aligned rather than centred: the component anchors its box at the
+       start edge, so centring makes the trailing glyph twitch sideways whenever
+       the box's width changes mid-roll. */
+    text-align:left;
     font-variant-numeric:tabular-nums;
   }
   .spacing-btn scritto-text{min-width:30px}     /* room for "1.75" */
@@ -2138,7 +2143,7 @@
     const move = ev => {
       const steps = Math.round((startY - ev.clientY) / 16);    // one size per 16px
       const next = SIZES[Math.max(0, Math.min(SIZES.length - 1, base + steps))];
-      rollNumber(sizeLabel, next);
+      rollNumber(sizeLabel, next, true, 130);
       if (String(next) !== before) sizeDragged = true;
     };
     const stop = () => {
@@ -2643,6 +2648,7 @@
       return;
     }
     applyInlineStyle('fontSize', px + 'px');
+    rollNumber(sizeLabel, px);            // a pick from the list rolls the readout
   }
 
   // --- line spacing ---------------------------------------------------------
@@ -2662,7 +2668,7 @@
     const raw = parseFloat(value) || DEFAULT_SPACING;
     const spacing = Math.max(1.1, Math.min(2.4, Math.round(raw * 10) / 10));
     editor.style.setProperty('--note-spacing', String(spacing));
-    rollNumber(spacingValue, spacing.toFixed(1));
+    rollNumber(spacingValue, spacing.toFixed(1), true, persist ? 0 : 130);
     if (persist && currentPath) {
       invoke('set_note_spacing', { path: currentPath, spacing }).catch(() => {});
     }
@@ -2794,7 +2800,7 @@
     }
     const el = node.nodeType === 3 ? node.parentElement : node;
     if (!el) return;
-    rollNumber(sizeLabel, parseInt(getComputedStyle(el).fontSize, 10));
+    rollNumber(sizeLabel, parseInt(getComputedStyle(el).fontSize, 10), false);
   });
 
   // --- "+ Create" offers a note or a folder --------------------------------
@@ -2863,7 +2869,7 @@
     return v == null ? String(el.textContent || '') : String(v);
   };
 
-  function rollNumber(el, value) {
+  function rollNumber(el, value, animate = true, duration = 0) {
     if (!el) return;
     const next = String(value);
     const before = parseFloat(rollingText(el));
@@ -2872,12 +2878,13 @@
       ? (after > before ? 1 : -1)
       : 0;
     if (typeof el.setOptions === 'function' && typeof el.update === 'function') {
-      el.setOptions({
-        trend,
-        bounce: true,
-        transition: { duration: 260, easing: 'cubic-bezier(.22,1.2,.36,1)' }
-      });
-      el.update(next, true);
+      const options = { trend, bounce: false };
+      /* A drag changes the value many times a second, so each step gets a short
+         roll that lands before the next one starts; a menu pick or a caret move
+         gets the component's own long, tuned transition. */
+      if (duration) options.transition = { duration, easing: 'ease-out' };
+      el.setOptions(options);
+      el.update(next, animate);
     } else {
       el.textContent = next;
     }
