@@ -28,6 +28,10 @@ public sealed class Settings
     public List<string> ReadNotes { get; set; } = new();
     /// <summary>Folders left closed in the sidebar, by vault-relative path.</summary>
     public List<string> CollapsedFolders { get; set; } = new();
+    /// <summary>Folded sections, by note path. The keys name a heading by rank,
+    /// its text and how many identical headings came before it, so a fold stays
+    /// on the same section when the prose above it changes.</summary>
+    public Dictionary<string, List<string>> NoteFolds { get; set; } = new();
     public bool TitleInline { get; set; }
     public uint SidebarWidth { get; set; } = 300;
 }

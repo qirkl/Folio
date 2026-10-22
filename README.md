@@ -63,7 +63,7 @@ call fails the window uses a solid colour instead.
 ## Status
 
 Works on Windows: notes on disk, autosave, rename, pin, search, photo frames,
-per-note font and spacing, undo, etc.
+per-note font and spacing, foldable headings, undo, etc.
 Not built as an installer yet.
 MacOS support is planned in the future.
 

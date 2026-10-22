@@ -92,6 +92,7 @@ public sealed class Bridge
             case "set_title_inline": _vault.SetTitleInline(Bool(args, "inline")); return null;
             case "set_last_note": _vault.SetLastNote(Str(args, "path")); return null;
             case "set_note_read": _vault.SetNoteRead(Str(args, "path"), Bool(args, "read")); return null;
+        case "set_note_folds": _vault.SetNoteFolds(Str(args, "path"), StringArray(args, "keys")); return null;
             case "set_collapsed_folders": _vault.SetCollapsedFolders(StringArray(args, "paths")); return null;
             case "import_files": return _vault.ImportFiles(StringArray(args, "paths").ToList());
             case "reveal_vault": _vault.RevealVault(); return null;

@@ -249,6 +249,7 @@ public sealed class VaultService
             Sizes = settings.NoteSizes,
             ReadNotes = settings.ReadNotes ?? new(),
             CollapsedFolders = settings.CollapsedFolders ?? new(),
+            Folds = settings.NoteFolds ?? new(),
             SidebarWidth = settings.SidebarWidth == 0 ? 300u : settings.SidebarWidth,
             TitleInline = settings.TitleInline,
         };
@@ -351,6 +352,21 @@ public sealed class VaultService
         settings.ReadNotes ??= new List<string>();
         settings.ReadNotes.RemoveAll(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase));
         if (read && !string.IsNullOrWhiteSpace(path)) settings.ReadNotes.Add(path);
+        SaveSettings(settings);
+    }
+
+    /// <summary>Folded sections, by note path, so a note comes back as it was
+    /// left. The keys are built by the page; this only stores them.</summary>
+    public void SetNoteFolds(string path, IEnumerable<string> keys)
+    {
+        var settings = LoadSettings();
+        settings.NoteFolds ??= new Dictionary<string, List<string>>();
+        var list = (keys ?? Array.Empty<string>())
+            .Where(k => !string.IsNullOrWhiteSpace(k))
+            .Distinct()
+            .ToList();
+        settings.NoteFolds.Remove(path);
+        if (list.Count > 0 && !string.IsNullOrWhiteSpace(path)) settings.NoteFolds[path] = list;
         SaveSettings(settings);
     }
 
@@ -613,6 +629,7 @@ public sealed class VaultService
         RenameKeys(settings.NoteFonts, Rewrite);
         RenameKeys(settings.NoteSpacing, Rewrite);
         RenameKeys(settings.NoteSizes, Rewrite);
+        RenameKeys(settings.NoteFolds, Rewrite);
         SaveSettings(settings);
 
         return to;

@@ -825,6 +825,31 @@
   .editor h3{font-size:20px}
   .editor h4,.editor h5,.editor h6{font-size:17px}
 
+  /* A heading owns the blocks under it until the next heading of its rank or
+     higher, so a section folds away as one piece. The chevron is a
+     pseudo-element: it is not in the document, so it cannot be selected,
+     copied, counted or written into the note, and nothing has to be cleaned up
+     when the page is replaced. It hangs just outside the heading's box, which
+     is why a press in that gutter is read as a fold (see the fold handler). */
+  .editor h1,.editor h2,.editor h3,.editor h4,.editor h5,.editor h6{position:relative}
+  .editor .foldable::before{
+    content:"";
+    position:absolute;left:-20px;top:calc(0.625em - 4.5px);
+    width:9px;height:9px;
+    border-right:1.6px solid var(--paper-ink);
+    border-bottom:1.6px solid var(--paper-ink);
+    transform:rotate(45deg);           /* open: the chevron points down */
+    opacity:0;
+    transition:opacity .12s ease,transform .12s ease;
+    cursor:pointer;
+  }
+  .editor .foldable:hover::before{opacity:.45}
+  .editor .folded::before{opacity:.62;transform:rotate(-45deg)}  /* closed: pointing right */
+  .editor .folded:hover::before{opacity:.9}
+  /* Folded blocks stay in the page — display is the only thing taken away, so
+     the note still saves, counts and reads back whole. */
+  .editor .folded-away{display:none}
+
   /* Centre every block of prose in one column. Descendant selectors, not `> *`:
      the column must survive content being wrapped in a styled span, and a `> *`
      selector also loses to `.editor p` on specificity. */
@@ -1472,6 +1497,7 @@
     editor.innerHTML = html;
     savedRange = null;                    // the range pointed into the replaced DOM
     normalizeHeadings();
+    applyFolds();                         // folds are view state, not edits
     fitAllPhotos();
     updateStats();
     syncToolbarState();
@@ -2202,6 +2228,141 @@
     });
   }
 
+  /* ---------------------------------------------------------------- folding */
+  /* Obsidian's outline rule, in a contenteditable page: a heading holds every
+     block below it until the next heading of the same rank or higher, so an H1
+     ends at the next H1 and carries its H2s and their prose with it. The blocks
+     are hidden, never removed, so the file, the word count and the markdown
+     round-trip keep the whole note.
+
+     A fold is remembered by rank, heading text and how many identical headings
+     came before it — the same section keeps its fold when prose above it grows,
+     and a renamed heading simply loses it. */
+  let noteFolds = {};                    // note path -> folded heading keys
+
+  function applyFolds() {
+    if (!editor) return;
+    const blocks = [...editor.children];
+    const seen = new Map();
+    const wanted = new Set((currentPath && noteFolds[currentPath]) || []);
+
+    const heads = blocks.map(el => {
+      const level = /^H[1-6]$/.test(el.tagName) ? parseInt(el.tagName.slice(1), 10) : 0;
+      if (!level) return { el, level: 0 };
+      const text = (el.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const base = level + '|' + text;
+      const n = seen.get(base) || 0;
+      seen.set(base, n + 1);
+      const key = base + '|' + n;
+
+      /* Renaming a heading changes its key. A folded section carries its fold
+         across, so editing the heading does not spring it open under the
+         typist — and the fold then persists under the new name. */
+      const was = el._foldKey;
+      if (was && was !== key && el.classList.contains('folded') && wanted.delete(was)) {
+        wanted.add(key);
+      }
+      el._foldKey = key;
+      return { el, level, key };
+    });
+
+    // A heading with nothing under it has nothing to fold, so it gets no
+    // chevron — and no stale fold either, which would point the wrong way.
+    heads.forEach((head, i) => {
+      if (!head.level) return;
+      const next = heads[i + 1];
+      head.body = i + 1 < heads.length && !(next.level && next.level <= head.level);
+      head.el.classList.toggle('foldable', head.body);
+      head.el.classList.toggle('folded', head.body && wanted.has(head.key));
+    });
+
+    // Hidden by whichever folded heading covers them; nested folds stay folded,
+    // so opening the outer section reveals the inner heading still closed.
+    blocks.forEach(el => el.classList.remove('folded-away'));
+    heads.forEach((head, i) => {
+      if (!head.level || !head.el.classList.contains('folded')) return;
+      for (let j = i + 1; j < blocks.length; j++) {
+        const other = heads[j];
+        if (other.level && other.level <= head.level) break;
+        blocks[j].classList.add('folded-away');
+      }
+    });
+
+    /* Folds whose heading has been deleted, renamed away or emptied are dropped
+       here rather than left to linger in settings.json. */
+    if (!currentPath) return;
+    const kept = heads.filter(h => h.level && h.el.classList.contains('folded')).map(h => h.key);
+    const before = noteFolds[currentPath] || [];
+    if (kept.length === before.length && kept.every(k => before.includes(k))) return;
+    if (kept.length) noteFolds[currentPath] = kept;
+    else delete noteFolds[currentPath];
+    scheduleFoldSave();
+  }
+
+  let foldSaveTimer = 0;
+  function scheduleFoldSave() {
+    clearTimeout(foldSaveTimer);
+    foldSaveTimer = setTimeout(() => {
+      foldSaveTimer = 0;
+      if (!currentPath) return;
+      invoke('set_note_folds', { path: currentPath, keys: noteFolds[currentPath] || [] })
+        .catch(() => {});
+    }, 500);
+  }
+
+  function toggleFold(heading) {
+    if (!currentPath || !heading || !heading._foldKey) return;
+    const keys = new Set(noteFolds[currentPath] || []);
+    if (keys.has(heading._foldKey)) keys.delete(heading._foldKey);
+    else keys.add(heading._foldKey);
+    if (keys.size) noteFolds[currentPath] = [...keys];
+    else delete noteFolds[currentPath];
+
+    applyFolds();
+    paintMarks();                        // strokes inside the section just went with it
+
+    /* Folding can hide the block the caret was in. Put the caret at the end of
+       the heading rather than let anyone type into something invisible. */
+    const sel = window.getSelection();
+    const node = sel && sel.rangeCount ? sel.anchorNode : null;
+    const holder = node && (node.nodeType === 1 ? node : node.parentElement);
+    if (!readMode && holder && holder.closest && holder.closest('.folded-away')) {
+      const range = document.createRange();
+      range.selectNodeContents(heading);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      editor.focus();
+    }
+
+    scheduleFoldSave();
+  }
+
+  /* New headings — typed, or made with the block list — need their chevron
+     without waiting for the note to be reopened. Coalesced to one pass a frame,
+     since this runs after every keystroke. */
+  let foldFrame = 0;
+  editor.addEventListener('input', () => {
+    if (foldFrame) return;
+    foldFrame = requestAnimationFrame(() => { foldFrame = 0; applyFolds(); });
+  });
+
+  /* The chevron has no node of its own (it is the heading's ::before), so the
+     press that folds is the one landing in the gutter beside it. A press on the
+     words is left alone: that is how a caret gets placed. */
+  let foldPress = false;
+  editor.addEventListener('mousedown', ev => {
+    foldPress = false;                   // every press starts a fresh gesture
+    if (ev.button !== 0) return;
+    const heading = ev.target.closest && ev.target.closest('h1,h2,h3,h4,h5,h6');
+    if (!heading || !heading.classList.contains('foldable')) return;
+    const box = heading.getBoundingClientRect();
+    if (ev.clientX > box.left - 3 || ev.clientX < box.left - 24) return;
+    ev.preventDefault();                 // the press must not move the caret
+    foldPress = true;                    // and it must not commit a pen stroke
+    toggleFold(heading);
+  });
+
   /* Focus moves to a menu or a toolbar button when you click it, and that
      collapses the editor's selection — so the command then applied to nothing.
      Keep a copy of the last range inside the editor and put it back first. */
@@ -2441,6 +2602,9 @@
     const lib = window.Highlighters;
     if (lib && typeof lib.highlight === 'function') {
       editor.querySelectorAll('span.mark').forEach(el => {
+        // A mark inside a folded section has no box to paint over; its stroke
+        // comes back when the section is opened.
+        if (!el.getClientRects().length) return;
         try { markHandles.push(lib.highlight(el, MARK_LOOK)); } catch (_) {}
       });
     }
@@ -2524,6 +2688,7 @@
 
   /* Releasing the mouse over the editor commits whatever was selected. */
   editor.addEventListener('mouseup', () => {
+    if (foldPress) return;                // that press was a fold, not a stroke
     if (!markMode || readMode) return;
     const sel = window.getSelection();
     if (!sel || !sel.rangeCount || sel.isCollapsed) return;
@@ -3197,6 +3362,7 @@
     fitAllPhotos();
     repairFrames();
     normalizeHeadings();
+    applyFolds();                      // the sections this note was left with closed
     updateStats();
     syncToolbarState();                                        // nothing carries over from the last note
     paintMarks();                                              // the pen strokes for this note
@@ -3819,6 +3985,7 @@
           noteFonts = prefs.fonts || {};
           noteSpacing = prefs.spacing || {};
           noteSizes = prefs.sizes || {};
+          noteFolds = prefs.folds || {};
           readNotes = prefs.read_notes || [];
           // Restore the closed folders before the tree is painted.
           collapsed.clear();
