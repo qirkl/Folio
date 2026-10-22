@@ -848,6 +848,15 @@
     background:none;color:inherit;
     box-shadow:none;border-radius:0;
   }
+  /* With the highlighter armed the library paints the live stroke over the
+     selection as you drag, so the browser's blue selection box sat on top of
+     the ink and made the run look like a text selection rather than a mark.
+     The stroke is the selection here, which is why the highlight goes away. */
+  body.mark-armed .editor::selection,
+  body.mark-armed .editor ::selection{
+    background:transparent;
+    color:inherit;
+  }
 
   .photos{position:relative;min-height:250px;margin:12px 0 18px}
   .photo{
@@ -2496,6 +2505,7 @@
   function setMarkMode(on) {
     const arm = !!on && !readMode;
     markMode = arm;
+    document.body.classList.toggle('mark-armed', arm);
     markBtn.classList.toggle('on', arm);
     markBtn.title = arm ? 'Highlighter on — select text to mark it' : 'Highlighter';
 
