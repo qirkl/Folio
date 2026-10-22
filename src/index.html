@@ -621,12 +621,12 @@
      them — which is what made the whole chrome twitch mid-drag. */
   .spacing-btn{min-width:62px;gap:5px;cursor:ns-resize}
   #sizeBtn{cursor:ns-resize}
-  .spacing-btn span,#sizeLabel{
+  .spacing-btn scritto-text,#sizeLabel{
     display:inline-block;
     text-align:center;
     font-variant-numeric:tabular-nums;
   }
-  .spacing-btn span{min-width:30px}     /* room for "1.75" */
+  .spacing-btn scritto-text{min-width:30px}     /* room for "1.75" */
   #sizeLabel{min-width:18px}            /* room for "40" */
   .spacing-btn.dragging,#sizeBtn.dragging{
     background:var(--paper-btn-bg-active);
@@ -1215,13 +1215,13 @@
     <div class="toolbar">
       <div class="tb-group">
         <div class="tbtn wide" id="fontBtn" title="Note font"><span id="fontLabel">Inter</span><span class="caret"></span></div>
-        <div class="tbtn" id="sizeBtn" title="Text size — click to pick, drag up or down to step"><span id="sizeLabel">16</span><span class="caret"></span></div>
+        <div class="tbtn" id="sizeBtn" title="Text size - click to pick, drag up or down to step"><scritto-text id="sizeLabel">16</scritto-text><span class="caret"></span></div>
         <div class="tbtn spacing-btn" id="spacingBtn" title="Drag up or down to change line spacing">
           <svg width="9" height="12" viewBox="0 0 9 12" aria-hidden="true">
             <path d="M4.5 1v10M4.5 1 1.7 3.8M4.5 1l2.8 2.8M4.5 11l-2.8-2.8M4.5 11l2.8-2.8"
                   fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span id="spacingValue">1.6</span>
+          <scritto-text id="spacingValue">1.6</scritto-text>
         </div>
       </div>
       <div class="tb-sep"></div>
@@ -1293,6 +1293,7 @@
   </main>
 </div>
 
+<script src="js/scritto.js"></script>
 <script src="js/highlighters.js"></script>
 <script src="js/markdown.js"></script>
 <script>
@@ -2122,13 +2123,13 @@
     if (e.button !== 0) return;
     sizeDragged = false;
     const startY = e.clientY;
-    const from = parseInt(sizeLabel.textContent, 10) || DEFAULT_SIZE;
+    const from = parseInt(rollingText(sizeLabel), 10) || DEFAULT_SIZE;
     let base = SIZES.indexOf(from);
     if (base < 0) {                       // a size off the list, from a note
       base = SIZES.findIndex(px => px >= from);
       if (base < 0) base = SIZES.length - 1;
     }
-    const before = sizeLabel.textContent;
+    const before = rollingText(sizeLabel);
 
     try { sizeBtn.setPointerCapture?.(e.pointerId); } catch (_) { /* synthetic pointer */ }
     sizeBtn.classList.add('dragging');
@@ -2137,7 +2138,7 @@
     const move = ev => {
       const steps = Math.round((startY - ev.clientY) / 16);    // one size per 16px
       const next = SIZES[Math.max(0, Math.min(SIZES.length - 1, base + steps))];
-      sizeLabel.textContent = String(next);
+      rollNumber(sizeLabel, next);
       if (String(next) !== before) sizeDragged = true;
     };
     const stop = () => {
@@ -2145,7 +2146,7 @@
       document.removeEventListener('pointerup', stop);
       sizeBtn.classList.remove('dragging');
       document.body.classList.remove('value-drag');
-      if (sizeDragged) applyFontSize(parseInt(sizeLabel.textContent, 10));
+      if (sizeDragged) applyFontSize(parseInt(rollingText(sizeLabel), 10));
     };
     document.addEventListener('pointermove', move);
     document.addEventListener('pointerup', stop);
@@ -2597,7 +2598,7 @@
   function applyNoteSize(value, persist = true) {
     const size = Math.max(8, Math.min(72, parseInt(value, 10) || DEFAULT_SIZE));
     editor.style.fontSize = size + 'px';
-    sizeLabel.textContent = size;
+    rollNumber(sizeLabel, size);
     if (persist && currentPath) {
       invoke('set_note_size', { path: currentPath, size }).catch(() => {});
     }
@@ -2661,7 +2662,7 @@
     const raw = parseFloat(value) || DEFAULT_SPACING;
     const spacing = Math.max(1.1, Math.min(2.4, Math.round(raw * 10) / 10));
     editor.style.setProperty('--note-spacing', String(spacing));
-    spacingValue.textContent = spacing.toFixed(1);
+    rollNumber(spacingValue, spacing.toFixed(1));
     if (persist && currentPath) {
       invoke('set_note_spacing', { path: currentPath, spacing }).catch(() => {});
     }
@@ -2793,7 +2794,7 @@
     }
     const el = node.nodeType === 3 ? node.parentElement : node;
     if (!el) return;
-    sizeLabel.textContent = parseInt(getComputedStyle(el).fontSize, 10);
+    rollNumber(sizeLabel, parseInt(getComputedStyle(el).fontSize, 10));
   });
 
   // --- "+ Create" offers a note or a folder --------------------------------
@@ -2851,6 +2852,37 @@
   const statusEl = document.getElementById('status');
   const demoTree = document.getElementById('treeDemo');
   const liveTree = document.getElementById('treeLive');
+
+  /* The size and spacing readouts roll to their new value with Scritto: the
+     digits travel up when the number grows and down when it shrinks, and the
+     trend is what tells the component which way to roll. Falls back to plain
+     text if the component did not load. */
+  const rollingText = el => {
+    if (!el) return '';
+    const v = el.value;
+    return v == null ? String(el.textContent || '') : String(v);
+  };
+
+  function rollNumber(el, value) {
+    if (!el) return;
+    const next = String(value);
+    const before = parseFloat(rollingText(el));
+    const after = parseFloat(next);
+    const trend = Number.isFinite(before) && Number.isFinite(after) && before !== after
+      ? (after > before ? 1 : -1)
+      : 0;
+    if (typeof el.setOptions === 'function' && typeof el.update === 'function') {
+      el.setOptions({
+        trend,
+        bounce: true,
+        transition: { duration: 260, easing: 'cubic-bezier(.22,1.2,.36,1)' }
+      });
+      el.update(next, true);
+    } else {
+      el.textContent = next;
+    }
+  }
+
 
   /* The head script marks the document as booting before the first paint, so the
      mock tree and note never appear. Once the first note is on screen the class

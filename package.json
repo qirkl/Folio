@@ -11,6 +11,7 @@
     "dist": "electron-builder --win nsis"
   },
   "dependencies": {
+    "@scritto/core": "^0.1.0",
     "koffi": "latest"
   },
   "devDependencies": {
