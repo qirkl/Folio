@@ -45,11 +45,27 @@
 
   // ------------------------------------------------------------------ text
 
-  // The characters markdown would otherwise treat as syntax.
-  var ESCAPABLE = /([\\`*_\[\]])/g;
+  // The characters markdown would otherwise treat as syntax. A "=" or "~" can
+  // open a highlight or a strike through in the middle of a word, so they are
+  // escaped here; block markers are handled separately, once a line exists.
+  var ESCAPABLE = /([\\`*_\[\]~=])/g;
 
   function escapeText(s) {
     return String(s).replace(ESCAPABLE, '\\$1');
+  }
+
+  /* Text that happens to begin a line with a block marker is still text. A
+     paragraph typed as "# title" is not a heading in the editor, and a file
+     that reads it back as one would silently lose the "# ". Prefixing the
+     marker with a backslash keeps the document a fixed point. The check runs
+     on every line because a <br> in a paragraph starts a line in the file too. */
+  function escapeBlockStarts(s) {
+    return String(s).split('\n').map(function (line) {
+      if (/^(#{1,6})\s/.test(line) || /^>/.test(line)) return '\\' + line;
+      if (/^\s*[-+]\s+/.test(line)) return line.replace(/^(\s*)([-+])/, '$1\\$2');
+      if (/^\s*\d+[.)]\s+/.test(line)) return line.replace(/^(\s*\d+)([.)])/, '$1\\$2');
+      return line;
+    }).join('\n');
   }
 
   function escapeHtml(s) {
@@ -487,7 +503,7 @@
   function blockMd(node) {
     if (node.nodeType === 3) {
       var text = String(node.nodeValue != null ? node.nodeValue : node.textContent).replace(/\s+/g, ' ').trim();
-      return text ? escapeText(text) : '';
+      return text ? escapeBlockStarts(escapeText(text)) : '';
     }
     if (!isElement(node)) return '';
 
@@ -495,10 +511,11 @@
 
     switch (tag) {
       case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6':
-        return new Array(+tag[1] + 1).join('#') + ' ' + inlineMd(childNodes(node)).trim();
+        return new Array(+tag[1] + 1).join('#') + ' ' +
+          escapeBlockStarts(inlineMd(childNodes(node)).trim());
 
       case 'p':
-        return inlineMd(childNodes(node)).trim();
+        return escapeBlockStarts(inlineMd(childNodes(node)).trim());
 
       case 'ul': case 'ol': {
         var items = childNodes(node);
@@ -509,13 +526,17 @@
           if (tagOf(items[k]) !== 'li') continue;
           n++;
           var marker = tag === 'ol' ? n + '. ' : '- ';
-          lines.push(marker + inlineMd(childNodes(items[k])).trim());
+          // Continuation lines stay in the item; a marker typed at the start
+          // of one must not break the list into a new heading or quote.
+          var item = escapeBlockStarts(inlineMd(childNodes(items[k])).trim())
+            .replace(/\n/g, '\n  ');
+          lines.push(marker + item);
         }
         return lines.join('\n');
       }
 
       case 'li':
-        return inlineMd(childNodes(node)).trim();
+        return escapeBlockStarts(inlineMd(childNodes(node)).trim());
 
       case 'blockquote': {
         var quoted = blocksMd(childNodes(node)).split('\n');

@@ -157,6 +157,22 @@ check('nested spans merge, inner wins',
   '<span style="font-family:Verdana;font-size:22px">deep</span>\n');
 check('an empty bold writes nothing',
   toMd(doc(p(el('strong', {}, []), txt('after')))), 'after\n');
+check('a paragraph that looks like a heading stays a paragraph',
+  toMd(doc(p(txt('# Test header yo!')))), '\\# Test header yo!\n');
+check('and reads back as the same text',
+  toHtml(toMd(doc(p(txt('# Test header yo!'))))), '<p># Test header yo!</p>');
+check('literal block markers are escaped on every line',
+  toMd(doc(p(
+    txt('# h'), el('br', {}, []),
+    txt('> q'), el('br', {}, []),
+    txt('- item'), el('br', {}, []),
+    txt('1. item'), el('br', {}, []),
+    txt('+ item')
+  ))),
+  '\\# h  \n\\> q  \n\\- item  \n1\\. item  \n\\+ item\n');
+check('literal highlight and strike markers are escaped',
+  toMd(doc(p(txt('==x== and ~~y~~')))),
+  '\\=\\=x\\=\\= and \\~\\~y\\~\\~\n');
 check('an empty underline writes nothing',
   toMd(doc(p(txt('a'), el('u', {}, [txt('   ')])))), 'a\n');
 check('a bare span is unwrapped',
@@ -189,7 +205,14 @@ const canonical = [
   '```\nconst x = 1;\n```',
   '![alt](pic.png "300x200+12+4")',
   'first line  \nsecond line',
-  'a \\*literal\\* star'
+  'a \\*literal\\* star',
+  '\\# Test header yo!',
+  '\\> not a quote',
+  '\\- not a list',
+  '1\\. not a list',
+  '\\+ not a list',
+  '\\=\\=not a mark\\=\\=',
+  '\\~\\~not a strike\\~\\~'
 ];
 
 for (const md of canonical) {
